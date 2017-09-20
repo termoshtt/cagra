@@ -5,3 +5,6 @@ authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
 
 [dependencies]
 petgraph = "*"
+ndarray = "*"
+ndarray-linalg = "*"
+procedurals = "*"
