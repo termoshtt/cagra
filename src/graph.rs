@@ -11,10 +11,42 @@ pub enum Node<A: Scalar> {
 }
 
 #[derive(Debug)]
-pub enum Variable<A: Scalar> {
-    Empty,
+pub struct Variable<A: Scalar> {
+    pub name: String,
+    pub value: Option<Value<A>>,
+    pub generation: usize,
+}
+
+impl<A: Scalar> Variable<A> {
+    pub fn new(name: &str) -> Self {
+        Variable {
+            name: name.to_string(),
+            value: None,
+            generation: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Edge<A: Scalar> {
+    pub value: Option<Value<A>>,
+    pub generation: usize,
+}
+
+impl<A: Scalar> Edge<A> {
+    pub fn new() -> Self {
+        Edge {
+            value: None,
+            generation: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Value<A: Scalar> {
     Scalar(A),
     Vector(Array<A, Ix1>),
+    Matrix(Array<A, Ix2>),
 }
 
 #[derive(Debug)]
@@ -25,26 +57,6 @@ pub enum Operator {
     ElementWiseProd,
 }
 
-#[derive(Debug)]
-pub enum Edge<A: Scalar> {
-    Empty,
-    Scalar(A),
-    Vector(Array<A, Ix1>),
-    Matrix(Array<A, Ix2>),
-}
-
-impl<A: Scalar> Default for Variable<A> {
-    fn default() -> Self {
-        Variable::Empty
-    }
-}
-
-impl<A: Scalar> Default for Edge<A> {
-    fn default() -> Self {
-        Edge::Empty
-    }
-}
-
 #[derive(Debug, NewType)]
 pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, Edge<A>>);
 
@@ -53,14 +65,14 @@ impl<A: Scalar> Graph<A> {
         petgraph::graph::Graph::new().into()
     }
 
-    pub fn variable(&mut self) -> NodeIndex {
-        self.add_node(Node::Variable(Variable::Empty))
+    pub fn variable(&mut self, name: &str) -> NodeIndex {
+        self.add_node(Variable::new(name).into())
     }
 
     pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
         let p = self.add_node(Node::Operator(Operator::Plus));
-        self.add_edge(lhs, p, Edge::Empty);
-        self.add_edge(rhs, p, Edge::Empty);
+        self.add_edge(lhs, p, Edge::new());
+        self.add_edge(rhs, p, Edge::new());
         p
     }
 }

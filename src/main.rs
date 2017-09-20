@@ -11,10 +11,10 @@ use graph::Graph;
 
 fn main() {
     let mut g: Graph<f64> = Graph::new();
-    let v1 = g.variable();
-    let v2 = g.variable();
-    let v1p2 = g.plus(v1, v2);
-    let v3 = g.variable();
-    let _ = g.plus(v1p2, v3);
+    let x = g.variable("x");
+    let y = g.variable("y");
+    let x_y = g.plus(x, y);
+    let z = g.variable("z");
+    let _ = g.plus(x_y, z);
     println!("{:?}", g);
 }
