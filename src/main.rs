@@ -1,38 +1,81 @@
 
+#[macro_use]
+extern crate procedurals;
 extern crate petgraph;
+extern crate ndarray;
+extern crate ndarray_linalg;
 
-use std::ops::Add;
-use std::fmt::Debug;
+use ndarray::*;
+use ndarray_linalg::*;
+use petgraph::prelude::*;
 
-pub type Ix = petgraph::graph::DefaultIx;
-
-#[derive(Debug)]
-pub enum Node<Value>
-where
-    Value: Add<Output = Value> + Debug,
-{
-    Variable(Value),
-    Plus(Plus),
-    End(()),
+#[derive(Debug, IntoEnum)]
+pub enum Node<A: Scalar> {
+    Variable(Variable<A>),
+    Operator(Operator),
 }
 
 #[derive(Debug)]
-pub struct Edge;
+pub enum Variable<A: Scalar> {
+    Empty,
+    Scalar(A),
+    Vector(Array<A, Ix1>),
+}
 
 #[derive(Debug)]
-pub struct Plus;
+pub enum Operator {
+    Plus,
+    ScalarMul,
+    InnerProd,
+    ElementWiseProd,
+}
 
-pub type Graph<Value> = petgraph::graph::Graph<Node<Value>, Edge, petgraph::Directed, Ix>;
+#[derive(Debug)]
+pub enum Edge<A: Scalar> {
+    Empty,
+    Scalar(A),
+    Vector(Array<A, Ix1>),
+    Matrix(Array<A, Ix2>),
+}
+
+impl<A: Scalar> Default for Variable<A> {
+    fn default() -> Self {
+        Variable::Empty
+    }
+}
+
+impl<A: Scalar> Default for Edge<A> {
+    fn default() -> Self {
+        Edge::Empty
+    }
+}
+
+#[derive(Debug, NewType)]
+pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, Edge<A>>);
+
+impl<A: Scalar> Graph<A> {
+    pub fn new() -> Self {
+        petgraph::graph::Graph::new().into()
+    }
+
+    pub fn variable(&mut self) -> NodeIndex {
+        self.add_node(Node::Variable(Variable::Empty))
+    }
+
+    pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let p = self.add_node(Node::Operator(Operator::Plus));
+        self.add_edge(lhs, p, Edge::Empty);
+        self.add_edge(rhs, p, Edge::Empty);
+        p
+    }
+}
 
 fn main() {
-    let mut g = Graph::new();
-    let e = g.add_node(Node::End(()));
-    let p = g.add_node(Node::Plus(Plus {}));
-    let v1 = g.add_node(Node::Variable(1));
-    let v2 = g.add_node(Node::Variable(2));
-    g.add_edge(p, e, Edge {});
-    g.add_edge(v1, p, Edge {});
-    g.add_edge(v2, p, Edge {});
-
+    let mut g: Graph<f64> = Graph::new();
+    let v1 = g.variable();
+    let v2 = g.variable();
+    let v1p2 = g.plus(v1, v2);
+    let v3 = g.variable();
+    let _ = g.plus(v1p2, v3);
     println!("{:?}", g);
 }
