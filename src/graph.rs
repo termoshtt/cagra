@@ -11,7 +11,7 @@ pub enum Value<A: Scalar> {
     Matrix(Array<A, Ix2>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
     prop: Property,
@@ -23,13 +23,13 @@ impl<A: Scalar> Node<A> {
     }
 }
 
-#[derive(Debug, IntoEnum)]
+#[derive(Debug, Clone, IntoEnum)]
 pub enum Property {
     Variable(Variable),
     BinaryOperator(BinaryOperator),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     name: String,
 }
@@ -40,7 +40,7 @@ impl Variable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinaryOperator {
     Plus,
     ScalarMul,
@@ -84,8 +84,15 @@ impl<A: Scalar> Graph<A> {
         p
     }
 
-    fn eval(&mut self, node: NodeIndex, use_cached: bool) {
-        let n = &self[node];
+    fn get_two_arguments(&mut self, binop_node: NodeIndex) -> (NodeIndex, NodeIndex) {
+        let mut iter = self.neighbors_directed(binop_node, Direction::Incoming);
+        let rhs = iter.next().unwrap();
+        let lhs = iter.next().unwrap();
+        (rhs, lhs)
+    }
+
+    pub fn eval(&mut self, node: NodeIndex, use_cached: bool) {
+        let n = self[node].clone();
         if use_cached && n.value.is_some() {
             return;
         }
@@ -93,7 +100,18 @@ impl<A: Scalar> Graph<A> {
             Property::Variable(ref v) => {
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
-            Property::BinaryOperator(_) => {} // TODO eval value recursively
+            Property::BinaryOperator(ref op) => {
+                // TODO eval value recursively
+                let (rhs, lhs) = self.get_two_arguments(node);
+                self.eval(rhs, use_cached);
+                self.eval(lhs, use_cached);
+                let rhs = self[rhs].value.clone().unwrap();
+                let _lhs = self[lhs].value.clone().unwrap();
+                match op {
+                    &BinaryOperator::Plus => self[node].value = Some(rhs),
+                    _ => unimplemented!(""),
+                }
+            }
         };
     }
 }
