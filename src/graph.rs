@@ -106,14 +106,17 @@ impl<A: Scalar> Graph<A> {
 
     pub fn eval(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
         let n = self[node].clone();
-        if use_cached && n.value.is_some() {
-            return Ok(());
-        }
         match n.prop {
             Property::Variable(ref v) => {
+                if n.value.is_some() {
+                    return Ok(());
+                }
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
             Property::BinaryOperator(ref op) => {
+                if use_cached && n.value.is_some() {
+                    return Ok(());
+                }
                 let (rhs, lhs) = self.get_two_arguments(node);
                 self.eval(rhs, use_cached)?;
                 self.eval(lhs, use_cached)?;
