@@ -42,7 +42,7 @@ impl<A: Scalar> Edge<A> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, IntoEnum)]
 pub enum Value<A: Scalar> {
     Scalar(A),
     Vector(Array<A, Ix1>),
@@ -74,5 +74,13 @@ impl<A: Scalar> Graph<A> {
         self.add_edge(lhs, p, Edge::new());
         self.add_edge(rhs, p, Edge::new());
         p
+    }
+
+    pub fn eval(&mut self, node: NodeIndex) -> Value<A> {
+        let n = &self[node];
+        match n {
+            &Node::Variable(ref v) => v.value.clone().expect("value is empty"),
+            &Node::Operator(_) => unimplemented!("Operation is not implemented"),
+        }
     }
 }
