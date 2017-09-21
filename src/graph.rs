@@ -48,6 +48,13 @@ pub enum BinaryOperator {
     ElementWiseProd,
 }
 
+impl BinaryOperator {
+    fn exec<A: Scalar>(&self, lhs: &Value<A>, _rhs: &Value<A>) -> Value<A> {
+        // TODO implement
+        lhs.clone()
+    }
+}
+
 #[derive(Debug)]
 pub struct Edge<A: Scalar> {
     value: Option<Value<A>>,
@@ -91,6 +98,10 @@ impl<A: Scalar> Graph<A> {
         (rhs, lhs)
     }
 
+    fn get_value(&self, node: NodeIndex) -> Option<&Value<A>> {
+        self[node].value.as_ref()
+    }
+
     pub fn eval(&mut self, node: NodeIndex, use_cached: bool) {
         let n = self[node].clone();
         if use_cached && n.value.is_some() {
@@ -101,16 +112,11 @@ impl<A: Scalar> Graph<A> {
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
             Property::BinaryOperator(ref op) => {
-                // TODO eval value recursively
                 let (rhs, lhs) = self.get_two_arguments(node);
                 self.eval(rhs, use_cached);
                 self.eval(lhs, use_cached);
-                let rhs = self[rhs].value.clone().unwrap();
-                let _lhs = self[lhs].value.clone().unwrap();
-                match op {
-                    &BinaryOperator::Plus => self[node].value = Some(rhs),
-                    _ => unimplemented!(""),
-                }
+                let res = op.exec(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
+                self[node].value = Some(res);
             }
         };
     }
