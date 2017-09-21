@@ -12,8 +12,13 @@ matrix:
     - rust: nightly
 
 script:
-  - cargo build -vv
   - cargo test -vv
+
+addons:
+  apt:
+    packages:
+      - cmake
+      - gfortran
 
 env:
   - RUST_BACKTRACE=1
