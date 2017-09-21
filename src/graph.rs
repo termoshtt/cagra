@@ -7,7 +7,7 @@ use petgraph::prelude::*;
 #[derive(Debug, IntoEnum)]
 pub enum Node<A: Scalar> {
     Variable(Variable<A>),
-    Operator(Operator),
+    BinaryOperator(BinaryOperator<A>),
 }
 
 #[derive(Debug)]
@@ -50,7 +50,15 @@ pub enum Value<A: Scalar> {
 }
 
 #[derive(Debug)]
-pub enum Operator {
+pub struct BinaryOperator<A: Scalar> {
+    value: Option<Value<A>>,
+    ty: BinaryOpType,
+    lhs: NodeIndex,
+    rhs: NodeIndex,
+}
+
+#[derive(Debug)]
+pub enum BinaryOpType {
     Plus,
     ScalarMul,
     InnerProd,
@@ -70,7 +78,13 @@ impl<A: Scalar> Graph<A> {
     }
 
     pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.add_node(Node::Operator(Operator::Plus));
+        let plus = BinaryOperator {
+            value: None,
+            ty: BinaryOpType::Plus,
+            lhs,
+            rhs,
+        };
+        let p = self.add_node(plus.into());
         self.add_edge(lhs, p, Edge::new());
         self.add_edge(rhs, p, Edge::new());
         p
@@ -80,7 +94,7 @@ impl<A: Scalar> Graph<A> {
         let n = &self[node];
         match n {
             &Node::Variable(ref v) => v.value.clone().expect("value is empty"),
-            &Node::Operator(_) => unimplemented!("Operation is not implemented"),
+            _ => unimplemented!("Operation is not implemented"),
         }
     }
 }
