@@ -4,44 +4,6 @@ use ndarray_linalg::*;
 use petgraph;
 use petgraph::prelude::*;
 
-#[derive(Debug, IntoEnum)]
-pub enum Node<A: Scalar> {
-    Variable(Variable<A>),
-    BinaryOperator(BinaryOperator<A>),
-}
-
-#[derive(Debug)]
-pub struct Variable<A: Scalar> {
-    pub name: String,
-    pub value: Option<Value<A>>,
-    pub generation: usize,
-}
-
-impl<A: Scalar> Variable<A> {
-    pub fn new(name: &str) -> Self {
-        Variable {
-            name: name.to_string(),
-            value: None,
-            generation: 0,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Edge<A: Scalar> {
-    pub value: Option<Value<A>>,
-    pub generation: usize,
-}
-
-impl<A: Scalar> Edge<A> {
-    pub fn new() -> Self {
-        Edge {
-            value: None,
-            generation: 0,
-        }
-    }
-}
-
 #[derive(Debug, Clone, IntoEnum)]
 pub enum Value<A: Scalar> {
     Scalar(A),
@@ -50,19 +12,51 @@ pub enum Value<A: Scalar> {
 }
 
 #[derive(Debug)]
-pub struct BinaryOperator<A: Scalar> {
+pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
-    ty: BinaryOpType,
-    lhs: NodeIndex,
-    rhs: NodeIndex,
+    prop: Property,
+}
+
+impl<A: Scalar> Node<A> {
+    fn new(prop: Property) -> Self {
+        Self { value: None, prop }
+    }
+}
+
+#[derive(Debug, IntoEnum)]
+pub enum Property {
+    Variable(Variable),
+    BinaryOperator(BinaryOperator),
 }
 
 #[derive(Debug)]
-pub enum BinaryOpType {
+pub struct Variable {
+    name: String,
+}
+
+impl Variable {
+    fn new(name: &str) -> Self {
+        Variable { name: name.to_string() }
+    }
+}
+
+#[derive(Debug)]
+pub enum BinaryOperator {
     Plus,
     ScalarMul,
     InnerProd,
     ElementWiseProd,
+}
+
+#[derive(Debug)]
+pub struct Edge<A: Scalar> {
+    value: Option<Value<A>>,
+}
+
+impl<A: Scalar> Edge<A> {
+    fn new() -> Self {
+        Edge { value: None }
+    }
 }
 
 #[derive(Debug, NewType)]
@@ -74,27 +68,32 @@ impl<A: Scalar> Graph<A> {
     }
 
     pub fn variable(&mut self, name: &str) -> NodeIndex {
-        self.add_node(Variable::new(name).into())
+        let var = Variable::new(name);
+        self.add_node(Node::new(var.into()))
+    }
+
+    pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) {
+        self[node].value = Some(value.into());
     }
 
     pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let plus = BinaryOperator {
-            value: None,
-            ty: BinaryOpType::Plus,
-            lhs,
-            rhs,
-        };
-        let p = self.add_node(plus.into());
+        let plus = BinaryOperator::Plus;
+        let p = self.add_node(Node::new(plus.into()));
         self.add_edge(lhs, p, Edge::new());
         self.add_edge(rhs, p, Edge::new());
         p
     }
 
-    pub fn eval(&mut self, node: NodeIndex) -> Value<A> {
+    fn eval(&mut self, node: NodeIndex, use_cached: bool) {
         let n = &self[node];
-        match n {
-            &Node::Variable(ref v) => v.value.clone().expect("value is empty"),
-            _ => unimplemented!("Operation is not implemented"),
+        if use_cached && n.value.is_some() {
+            return;
         }
+        match n.prop {
+            Property::Variable(ref v) => {
+                panic!("Variable '{}' is evaluated before set value", v.name)
+            }
+            Property::BinaryOperator(_) => {} // TODO eval value recursively
+        };
     }
 }

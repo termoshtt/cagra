@@ -12,9 +12,12 @@ use graph::Graph;
 fn main() {
     let mut g: Graph<f64> = Graph::new();
     let x = g.variable("x");
+    g.set_value(x, 1.0);
     let y = g.variable("y");
+    g.set_value(x, 2.0);
     let x_y = g.plus(x, y);
     let z = g.variable("z");
+    g.set_value(x, 3.0);
     let _ = g.plus(x_y, z);
     println!("{:?}", g);
 }
