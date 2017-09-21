@@ -4,6 +4,8 @@ use ndarray_linalg::*;
 use petgraph;
 use petgraph::prelude::*;
 
+use error::*;
+
 #[derive(Debug, Clone, IntoEnum)]
 pub enum Value<A: Scalar> {
     Scalar(A),
@@ -49,9 +51,9 @@ pub enum BinaryOperator {
 }
 
 impl BinaryOperator {
-    fn exec<A: Scalar>(&self, lhs: &Value<A>, _rhs: &Value<A>) -> Value<A> {
+    fn exec<A: Scalar>(&self, lhs: &Value<A>, _rhs: &Value<A>) -> Result<Value<A>> {
         // TODO implement
-        lhs.clone()
+        Ok(lhs.clone())
     }
 }
 
@@ -102,10 +104,10 @@ impl<A: Scalar> Graph<A> {
         self[node].value.as_ref()
     }
 
-    pub fn eval(&mut self, node: NodeIndex, use_cached: bool) {
+    pub fn eval(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
         let n = self[node].clone();
         if use_cached && n.value.is_some() {
-            return;
+            return Ok(());
         }
         match n.prop {
             Property::Variable(ref v) => {
@@ -113,11 +115,15 @@ impl<A: Scalar> Graph<A> {
             }
             Property::BinaryOperator(ref op) => {
                 let (rhs, lhs) = self.get_two_arguments(node);
-                self.eval(rhs, use_cached);
-                self.eval(lhs, use_cached);
-                let res = op.exec(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
+                self.eval(rhs, use_cached)?;
+                self.eval(lhs, use_cached)?;
+                let res = op.exec(
+                    self.get_value(lhs).unwrap(),
+                    self.get_value(rhs).unwrap(),
+                )?;
                 self[node].value = Some(res);
             }
         };
+        Ok(())
     }
 }

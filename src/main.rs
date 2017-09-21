@@ -6,6 +6,7 @@ extern crate ndarray;
 extern crate ndarray_linalg;
 
 pub mod graph;
+pub mod error;
 
 use graph::Graph;
 
