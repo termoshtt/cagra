@@ -45,15 +45,20 @@ impl Variable {
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOperator {
     Plus,
-    ScalarMul,
-    InnerProd,
-    ElementWiseProd,
 }
 
 impl BinaryOperator {
-    fn exec<A: Scalar>(&self, lhs: &Value<A>, _rhs: &Value<A>) -> Result<Value<A>> {
-        // TODO implement
-        Ok(lhs.clone())
+    fn exec<A: Scalar>(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
+        match self {
+            &BinaryOperator::Plus => {
+                match (lhs, rhs) {
+                    (&Value::Scalar(ref l), &Value::Scalar(ref r)) => Ok((*l + *r).into()),
+                    (&Value::Vector(ref l), &Value::Vector(ref r)) => Ok((l + r).into()),
+                    (&Value::Matrix(ref l), &Value::Matrix(ref r)) => Ok((l + r).into()),
+                    _ => Err(ArgTypeMismatchError {}.into()),
+                }
+            }
+        }
     }
 }
 
