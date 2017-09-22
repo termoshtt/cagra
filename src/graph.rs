@@ -2,7 +2,7 @@
 //!
 //! # Examples
 //!
-//! Create a graph for `(x + y) + z`
+//! Create a graph for `(x + y) - z`
 //!
 //! ```
 //! use cagra::graph::*;
@@ -14,10 +14,10 @@
 //! let y = g.scalar_variable("y", 2.0);
 //! // tmp = x + y
 //! let tmp = g.plus(x, y);
-//! // z = 3.0
-//! let z = g.scalar_variable("z", 3.0);
-//! // sum = tmp + z
-//! let sum = g.plus(tmp, z);
+//! // z = -3.0
+//! let z = g.scalar_variable("z", -3.0);
+//! // sum = tmp - z
+//! let sum = g.sub(tmp, z);
 //!
 //! g.eval(sum, false).unwrap();
 //! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
@@ -171,6 +171,11 @@ impl<A: Scalar> Graph<A> {
         let n = self.add_node(Node::new(neg.into()));
         self.add_edge(arg, n, Edge::new());
         n
+    }
+
+    pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let m_rhs = self.negate(rhs);
+        self.plus(lhs, m_rhs)
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
