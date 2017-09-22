@@ -1,3 +1,30 @@
+//! Calculation graph
+//!
+//! # Examples
+//!
+//! Create a graph for `(x + y) + z`
+//!
+//! ```
+//! use cagra::graph::*;
+//!
+//! let mut g: Graph<f64> = Graph::new();
+//! // x = 1.0
+//! let x = g.variable("x");
+//! g.set_value(x, 1.0);
+//! // y = 2.0
+//! let y = g.variable("y");
+//! g.set_value(y, 2.0);
+//! // tmp = x + y
+//! let tmp = g.plus(x, y);
+//! // z = 3.0
+//! let z = g.variable("z");
+//! g.set_value(z, 3.0);
+//! // sum = tmp + z
+//! let sum = g.plus(tmp, z);
+//!
+//! g.eval(sum, false).unwrap();
+//! println!("(x + y) + z = {:?}", g.get_value(sum).unwrap());  // 6.0
+//! ```
 
 use ndarray::*;
 use ndarray_linalg::*;
