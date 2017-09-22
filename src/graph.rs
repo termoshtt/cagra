@@ -45,12 +45,16 @@ impl<A: Scalar> Value<A> {
             _ => Err(CastError {}.into()),
         }
     }
+
+    pub fn identity() -> Self {
+        Value::Scalar(A::from_f64(1.0))
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
-    derivative: Option<Value<A>>,
+    deriv: Option<Value<A>>,
     prop: Property,
 }
 
@@ -58,7 +62,7 @@ impl<A: Scalar> Node<A> {
     fn new(prop: Property) -> Self {
         Self {
             value: None,
-            derivative: None,
+            deriv: None,
             prop,
         }
     }
@@ -100,6 +104,11 @@ impl UnaryOperator {
         }
 
     }
+
+    fn eval_deriv<A: Scalar>(&self, arg_last: &Value<A>, deriv: &Value<A>) -> Result<Value<A>> {
+        // TODO implmeent
+        Ok(Value::identity())
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -119,6 +128,16 @@ impl BinaryOperator {
                 }
             }
         }
+    }
+
+    fn eval_deriv<A: Scalar>(
+        &self,
+        lhs_last: &Value<A>,
+        rhs_last: &Value<A>,
+        deriv: &Value<A>,
+    ) -> Result<(Value<A>, Value<A>)> {
+        // TODO implmeent
+        Ok((Value::identity(), Value::identity()))
     }
 }
 
@@ -181,7 +200,7 @@ impl<A: Scalar> Graph<A> {
         let mut iter = self.neighbors_directed(op, Direction::Incoming);
         let rhs = iter.next().unwrap();
         let lhs = iter.next().unwrap();
-        (rhs, lhs)
+        (lhs, rhs)
     }
 
     /// Get the value of the node. If the value has not been caluclated,
@@ -190,20 +209,27 @@ impl<A: Scalar> Graph<A> {
         self[node].value.as_ref()
     }
 
+    /// Get the value of the node. If the value has not been caluclated,
+    /// returns `None`
+    pub fn get_deriv(&self, node: NodeIndex) -> Option<&Value<A>> {
+        self[node].deriv.as_ref()
+    }
+
     /// Evaluate the value of the node recusively.
     ///
     /// * `use_cached` - Use the value if already calculated.
     pub fn eval(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
-        let n = self[node].clone();
-        match n.prop {
+        let prop = self[node].prop.clone();
+        let value_exists = self[node].value.is_some();
+        match prop {
             Property::Variable(ref v) => {
-                if n.value.is_some() {
+                if value_exists {
                     return Ok(());
                 }
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
             Property::UnaryOperator(ref op) => {
-                if use_cached && n.value.is_some() {
+                if use_cached && value_exists {
                     return Ok(());
                 }
                 let arg = self.get_arg1(node);
@@ -212,10 +238,10 @@ impl<A: Scalar> Graph<A> {
                 self[node].value = Some(res);
             }
             Property::BinaryOperator(ref op) => {
-                if use_cached && n.value.is_some() {
+                if use_cached && value_exists {
                     return Ok(());
                 }
-                let (rhs, lhs) = self.get_arg2(node);
+                let (lhs, rhs) = self.get_arg2(node);
                 self.eval(rhs, use_cached)?;
                 self.eval(lhs, use_cached)?;
                 let res = op.exec(
@@ -226,5 +252,36 @@ impl<A: Scalar> Graph<A> {
             }
         };
         Ok(())
+    }
+
+    fn deriv_recur(&mut self, node: NodeIndex, der: Value<A>) -> Result<()> {
+        self[node].deriv = Some(der);
+        let prop = self[node].prop.clone();
+        match prop {
+            Property::Variable(ref v) => {}
+            Property::UnaryOperator(ref op) => {
+                let arg = self.get_arg1(node);
+                let der = op.eval_deriv(
+                    self.get_value(arg).unwrap(),
+                    self.get_deriv(node).unwrap(),
+                )?;
+                self.deriv_recur(arg, der)?;
+            }
+            Property::BinaryOperator(ref op) => {
+                let (lhs, rhs) = self.get_arg2(node);
+                let (l_der, r_der) = op.eval_deriv(
+                    self.get_value(lhs).unwrap(),
+                    self.get_value(rhs).unwrap(),
+                    self.get_deriv(node).unwrap(),
+                )?;
+                self.deriv_recur(lhs, l_der)?;
+                self.deriv_recur(rhs, r_der)?;
+            }
+        };
+        Ok(())
+    }
+
+    pub fn deriv(&mut self, node: NodeIndex) -> Result<()> {
+        self.deriv_recur(node, Value::identity())
     }
 }
