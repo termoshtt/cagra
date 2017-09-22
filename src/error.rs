@@ -8,7 +8,7 @@ pub enum Error {
     BinOpTypeError(BinOpTypeError),
 }
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct BinOpTypeError {
-    op: BinaryOperator,
+    pub(crate) op: BinaryOperator,
 }

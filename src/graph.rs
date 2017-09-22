@@ -53,13 +53,13 @@ impl<A: Scalar> Node<A> {
 }
 
 #[derive(Debug, Clone, IntoEnum)]
-pub enum Property {
+enum Property {
     Variable(Variable),
     BinaryOperator(BinaryOperator),
 }
 
 #[derive(Debug, Clone)]
-pub struct Variable {
+struct Variable {
     name: String,
 }
 
@@ -70,7 +70,7 @@ impl Variable {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum BinaryOperator {
+pub(crate) enum BinaryOperator {
     Plus,
 }
 
@@ -82,7 +82,7 @@ impl BinaryOperator {
                     (&Value::Scalar(ref l), &Value::Scalar(ref r)) => Ok((*l + *r).into()),
                     (&Value::Vector(ref l), &Value::Vector(ref r)) => Ok((l + r).into()),
                     (&Value::Matrix(ref l), &Value::Matrix(ref r)) => Ok((l + r).into()),
-                    _ => Err(BinOpTypeError::new(*self).into()),
+                    _ => Err(BinOpTypeError { op: *self }.into()),
                 }
             }
         }
@@ -100,7 +100,7 @@ impl<A: Scalar> Edge<A> {
     }
 }
 
-///
+/// Calculation graph based on `petgraph::graph::Graph`
 #[derive(Debug, NewType)]
 pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, Edge<A>>);
 
@@ -133,10 +133,15 @@ impl<A: Scalar> Graph<A> {
         (rhs, lhs)
     }
 
-    fn get_value(&self, node: NodeIndex) -> Option<&Value<A>> {
+    /// Get the value of the node. If the value has not been caluclated,
+    /// returns `None`
+    pub fn get_value(&self, node: NodeIndex) -> Option<&Value<A>> {
         self[node].value.as_ref()
     }
 
+    /// Evaluate the value of the node recusively.
+    ///
+    /// * `use_cached` - Use the value if already calculated.
     pub fn eval(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
         let n = self[node].clone();
         match n.prop {
