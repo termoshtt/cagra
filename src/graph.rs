@@ -9,16 +9,13 @@
 //!
 //! let mut g: Graph<f64> = Graph::new();
 //! // x = 1.0
-//! let x = g.variable("x");
-//! g.set_value(x, 1.0);
+//! let x = g.scalar_variable("x", 1.0);
 //! // y = 2.0
-//! let y = g.variable("y");
-//! g.set_value(y, 2.0);
+//! let y = g.scalar_variable("y", 2.0);
 //! // tmp = x + y
 //! let tmp = g.plus(x, y);
 //! // z = 3.0
-//! let z = g.variable("z");
-//! g.set_value(z, 3.0);
+//! let z = g.scalar_variable("z", 3.0);
 //! // sum = tmp + z
 //! let sum = g.plus(tmp, z);
 //!
@@ -112,6 +109,18 @@ impl<A: Scalar> Graph<A> {
     pub fn variable(&mut self, name: &str) -> NodeIndex {
         let var = Variable::new(name);
         self.add_node(Node::new(var.into()))
+    }
+
+    pub fn scalar_variable(&mut self, name: &str, value: A) -> NodeIndex {
+        let var = self.variable(name);
+        self.set_value(var, value);
+        var
+    }
+
+    pub fn vector_variable(&mut self, name: &str, value: Array<A, Ix1>) -> NodeIndex {
+        let var = self.variable(name);
+        self.set_value(var, value);
+        var
     }
 
     pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) {
