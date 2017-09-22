@@ -166,6 +166,13 @@ impl<A: Scalar> Graph<A> {
         p
     }
 
+    pub fn negate(&mut self, arg: NodeIndex) -> NodeIndex {
+        let neg = UnaryOperator::Negate;
+        let n = self.add_node(Node::new(neg.into()));
+        self.add_edge(arg, n, Edge::new());
+        n
+    }
+
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
         let mut iter = self.neighbors_directed(op, Direction::Incoming);
         iter.next().unwrap()
