@@ -20,7 +20,8 @@
 //! let sum = g.plus(tmp, z);
 //!
 //! g.eval(sum, false).unwrap();
-//! println!("(x + y) + z = {:?}", g.get_value(sum).unwrap());  // 6.0
+//! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
+//! assert!((result - 6.0).abs() < 1e-7);
 //! ```
 
 use ndarray::*;
@@ -35,6 +36,15 @@ pub enum Value<A: Scalar> {
     Scalar(A),
     Vector(Array<A, Ix1>),
     Matrix(Array<A, Ix2>),
+}
+
+impl<A: Scalar> Value<A> {
+    pub fn as_scalar(&self) -> Result<A> {
+        match *self {
+            Value::Scalar(a) => Ok(a),
+            _ => Err(CastError {}.into()),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
