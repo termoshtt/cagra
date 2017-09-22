@@ -1,10 +1,14 @@
 
+use graph::*;
+
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, IntoEnum)]
 pub enum Error {
-    ArgTypeMismatch(ArgTypeMismatchError),
+    BinOpTypeError(BinOpTypeError),
 }
 
-#[derive(Debug)]
-pub struct ArgTypeMismatchError {}
+#[derive(Debug, new)]
+pub struct BinOpTypeError {
+    op: BinaryOperator,
+}

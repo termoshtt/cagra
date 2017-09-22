@@ -55,7 +55,7 @@ impl BinaryOperator {
                     (&Value::Scalar(ref l), &Value::Scalar(ref r)) => Ok((*l + *r).into()),
                     (&Value::Vector(ref l), &Value::Vector(ref r)) => Ok((l + r).into()),
                     (&Value::Matrix(ref l), &Value::Matrix(ref r)) => Ok((l + r).into()),
-                    _ => Err(ArgTypeMismatchError {}.into()),
+                    _ => Err(BinOpTypeError::new(*self).into()),
                 }
             }
         }
@@ -73,6 +73,7 @@ impl<A: Scalar> Edge<A> {
     }
 }
 
+///
 #[derive(Debug, NewType)]
 pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, Edge<A>>);
 
