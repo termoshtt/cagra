@@ -62,6 +62,7 @@ impl<A: Scalar> Node<A> {
 #[derive(Debug, Clone, IntoEnum)]
 enum Property {
     Variable(Variable),
+    UnaryOperator(UnaryOperator),
     BinaryOperator(BinaryOperator),
 }
 
@@ -77,7 +78,27 @@ impl Variable {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum BinaryOperator {
+pub enum UnaryOperator {
+    Negate,
+}
+
+impl UnaryOperator {
+    fn exec<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
+        match self {
+            &UnaryOperator::Negate => {
+                match arg {
+                    &Value::Scalar(a) => Ok((-a).into()),
+                    &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
+                    &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
+                }
+            }
+        }
+
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum BinaryOperator {
     Plus,
 }
 
@@ -145,8 +166,13 @@ impl<A: Scalar> Graph<A> {
         p
     }
 
-    fn get_two_arguments(&mut self, binop_node: NodeIndex) -> (NodeIndex, NodeIndex) {
-        let mut iter = self.neighbors_directed(binop_node, Direction::Incoming);
+    fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
+        let mut iter = self.neighbors_directed(op, Direction::Incoming);
+        iter.next().unwrap()
+    }
+
+    fn get_arg2(&mut self, op: NodeIndex) -> (NodeIndex, NodeIndex) {
+        let mut iter = self.neighbors_directed(op, Direction::Incoming);
         let rhs = iter.next().unwrap();
         let lhs = iter.next().unwrap();
         (rhs, lhs)
@@ -170,11 +196,20 @@ impl<A: Scalar> Graph<A> {
                 }
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
+            Property::UnaryOperator(ref op) => {
+                if use_cached && n.value.is_some() {
+                    return Ok(());
+                }
+                let arg = self.get_arg1(node);
+                self.eval(arg, use_cached)?;
+                let res = op.exec(self.get_value(arg).unwrap())?;
+                self[node].value = Some(res);
+            }
             Property::BinaryOperator(ref op) => {
                 if use_cached && n.value.is_some() {
                     return Ok(());
                 }
-                let (rhs, lhs) = self.get_two_arguments(node);
+                let (rhs, lhs) = self.get_arg2(node);
                 self.eval(rhs, use_cached)?;
                 self.eval(lhs, use_cached)?;
                 let res = op.exec(
