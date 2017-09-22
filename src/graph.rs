@@ -50,12 +50,17 @@ impl<A: Scalar> Value<A> {
 #[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
+    derivative: Option<Value<A>>,
     prop: Property,
 }
 
 impl<A: Scalar> Node<A> {
     fn new(prop: Property) -> Self {
-        Self { value: None, prop }
+        Self {
+            value: None,
+            derivative: None,
+            prop,
+        }
     }
 }
 
@@ -117,20 +122,9 @@ impl BinaryOperator {
     }
 }
 
-#[derive(Debug)]
-pub struct Edge<A: Scalar> {
-    value: Option<Value<A>>,
-}
-
-impl<A: Scalar> Edge<A> {
-    fn new() -> Self {
-        Edge { value: None }
-    }
-}
-
 /// Calculation graph based on `petgraph::graph::Graph`
 #[derive(Debug, NewType)]
-pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, Edge<A>>);
+pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, ()>);
 
 impl<A: Scalar> Graph<A> {
     pub fn new() -> Self {
@@ -161,15 +155,15 @@ impl<A: Scalar> Graph<A> {
     pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
         let plus = BinaryOperator::Plus;
         let p = self.add_node(Node::new(plus.into()));
-        self.add_edge(lhs, p, Edge::new());
-        self.add_edge(rhs, p, Edge::new());
+        self.add_edge(lhs, p, ());
+        self.add_edge(rhs, p, ());
         p
     }
 
     pub fn negate(&mut self, arg: NodeIndex) -> NodeIndex {
         let neg = UnaryOperator::Negate;
         let n = self.add_node(Node::new(neg.into()));
-        self.add_edge(arg, n, Edge::new());
+        self.add_edge(arg, n, ());
         n
     }
 
