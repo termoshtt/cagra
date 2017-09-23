@@ -13,7 +13,7 @@
 //! // y = 2.0
 //! let y = g.scalar_variable("y", 2.0);
 //! // tmp = x + y
-//! let tmp = g.plus(x, y);
+//! let tmp = g.add(x, y);
 //! // z = -3.0
 //! let z = g.scalar_variable("z", -3.0);
 //! // sum = tmp - z
@@ -40,11 +40,23 @@ use petgraph::prelude::*;
 use operator::*;
 use error::*;
 
+/// Node of the calculation graph.
+///
+/// This struct keeps the last value, and `Graph` calculates the derivative
+/// using this value.
 #[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
     deriv: Option<Value<A>>,
     prop: Property,
+}
+
+/// Extra propaties of the `Node` accoding to the node type.
+#[derive(Debug, Clone, IntoEnum)]
+enum Property {
+    Variable(Variable),
+    UnaryOperator(UnaryOperator),
+    BinaryOperator(BinaryOperator),
 }
 
 impl<A: Scalar> Node<A> {
@@ -56,20 +68,14 @@ impl<A: Scalar> Node<A> {
         }
     }
 
-    fn is_variable(&self) -> bool {
+    /// Check the node is variable
+    pub fn is_variable(&self) -> bool {
         match self.prop {
             Property::Variable(_) => true,
             Property::UnaryOperator(_) => false,
             Property::BinaryOperator(_) => false,
         }
     }
-}
-
-#[derive(Debug, Clone, IntoEnum)]
-enum Property {
-    Variable(Variable),
-    UnaryOperator(UnaryOperator),
-    BinaryOperator(BinaryOperator),
 }
 
 #[derive(Debug, Clone)]
@@ -88,27 +94,32 @@ impl Variable {
 pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, ()>);
 
 impl<A: Scalar> Graph<A> {
+    /// new graph.
     pub fn new() -> Self {
         petgraph::graph::Graph::new().into()
     }
 
+    /// Create new empty variable
     pub fn variable(&mut self, name: &str) -> NodeIndex {
         let var = Variable::new(name);
         self.add_node(Node::new(var.into()))
     }
 
+    /// Create new scalar variable
     pub fn scalar_variable(&mut self, name: &str, value: A) -> NodeIndex {
         let var = self.variable(name);
         self.set_value(var, value).unwrap();
         var
     }
 
+    /// Create new vector variable
     pub fn vector_variable(&mut self, name: &str, value: Array<A, Ix1>) -> NodeIndex {
         let var = self.variable(name);
         self.set_value(var, value).unwrap();
         var
     }
 
+    /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
     pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) -> Result<()> {
         if self[node].is_variable() {
             self[node].value = Some(value.into());
@@ -118,15 +129,15 @@ impl<A: Scalar> Graph<A> {
         }
     }
 
-    pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let plus = BinaryOperator::Plus;
-        let p = self.add_node(Node::new(plus.into()));
+    pub fn add(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let add = BinaryOperator::Plus;
+        let p = self.add_node(Node::new(add.into()));
         self.add_edge(lhs, p, ());
         self.add_edge(rhs, p, ());
         p
     }
 
-    pub fn negate(&mut self, arg: NodeIndex) -> NodeIndex {
+    pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
         let neg = UnaryOperator::Negate;
         let n = self.add_node(Node::new(neg.into()));
         self.add_edge(arg, n, ());
@@ -134,8 +145,8 @@ impl<A: Scalar> Graph<A> {
     }
 
     pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let m_rhs = self.negate(rhs);
-        self.plus(lhs, m_rhs)
+        let m_rhs = self.neg(rhs);
+        self.add(lhs, m_rhs)
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
@@ -166,6 +177,7 @@ impl<A: Scalar> Graph<A> {
     ///
     /// * `use_cached` - Use the value if already calculated.
     pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
+        // FIXME This code traces the graph twice, but it may be able to done by once.
         let prop = self[node].prop.clone();
         let value_exists = self[node].value.is_some();
         match prop {
@@ -228,6 +240,7 @@ impl<A: Scalar> Graph<A> {
         Ok(())
     }
 
+    /// Evaluate derivative recursively.
     pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
         self.deriv_recur(node, Value::identity())
     }
