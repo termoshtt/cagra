@@ -1,15 +1,49 @@
+//! Value and operators in calculation graph
 
+use ndarray::*;
 use ndarray_linalg::*;
 
-use graph::*;
 use error::*;
 
+/// Value in graph
+///
+/// Each node has a value in the following types:
+///
+/// - Scalar
+/// - Vector (represented by `Array1<A>`)
+/// - Matrix (represented by `Array2<A>`)
+///
+/// These types are selected dynamically, and operators returns `Err`
+/// if it does not support the received value.
+#[derive(Debug, Clone, IntoEnum)]
+pub enum Value<A: Scalar> {
+    Scalar(A),
+    Vector(Array1<A>),
+    Matrix(Array2<A>),
+}
+
+impl<A: Scalar> Value<A> {
+    /// Return value if it is a scalar
+    pub fn as_scalar(&self) -> Result<A> {
+        match *self {
+            Value::Scalar(a) => Ok(a),
+            _ => Err(CastError {}.into()),
+        }
+    }
+
+    pub fn identity() -> Self {
+        Value::Scalar(A::from_f64(1.0))
+    }
+}
+
+/// Unary Operators
 #[derive(Debug, Clone, Copy)]
 pub enum UnaryOperator {
     Negate,
 }
 
 impl UnaryOperator {
+    /// Evaluate the result value of the operator
     pub fn eval_value<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
         match self {
             &UnaryOperator::Negate => {
@@ -23,6 +57,8 @@ impl UnaryOperator {
 
     }
 
+    /// Evaluate the derivative of the operator multiplied by the received
+    /// derivative from upper of the graph.
     pub fn eval_deriv<A: Scalar>(
         &self,
         _arg_last: &Value<A>,
@@ -40,6 +76,7 @@ impl UnaryOperator {
     }
 }
 
+/// Binary Operators
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOperator {
     Plus,

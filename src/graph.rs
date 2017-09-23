@@ -40,26 +40,6 @@ use petgraph::prelude::*;
 use operator::*;
 use error::*;
 
-#[derive(Debug, Clone, IntoEnum)]
-pub enum Value<A: Scalar> {
-    Scalar(A),
-    Vector(Array<A, Ix1>),
-    Matrix(Array<A, Ix2>),
-}
-
-impl<A: Scalar> Value<A> {
-    pub fn as_scalar(&self) -> Result<A> {
-        match *self {
-            Value::Scalar(a) => Ok(a),
-            _ => Err(CastError {}.into()),
-        }
-    }
-
-    pub fn identity() -> Self {
-        Value::Scalar(A::from_f64(1.0))
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
