@@ -37,6 +37,7 @@ use ndarray_linalg::*;
 use petgraph;
 use petgraph::prelude::*;
 
+use operator::*;
 use error::*;
 
 #[derive(Debug, Clone, IntoEnum)]
@@ -99,69 +100,6 @@ struct Variable {
 impl Variable {
     fn new(name: &str) -> Self {
         Variable { name: name.to_string() }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum UnaryOperator {
-    Negate,
-}
-
-impl UnaryOperator {
-    fn eval_value<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
-        match self {
-            &UnaryOperator::Negate => {
-                match arg {
-                    &Value::Scalar(a) => Ok((-a).into()),
-                    &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
-                    &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
-                }
-            }
-        }
-
-    }
-
-    fn eval_deriv<A: Scalar>(&self, _arg_last: &Value<A>, deriv: &Value<A>) -> Result<Value<A>> {
-        match self {
-            &UnaryOperator::Negate => {
-                match deriv {
-                    &Value::Scalar(a) => Ok((-a).into()),
-                    &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
-                    &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum BinaryOperator {
-    Plus,
-}
-
-impl BinaryOperator {
-    fn eval_value<A: Scalar>(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
-        match self {
-            &BinaryOperator::Plus => {
-                match (lhs, rhs) {
-                    (&Value::Scalar(ref l), &Value::Scalar(ref r)) => Ok((*l + *r).into()),
-                    (&Value::Vector(ref l), &Value::Vector(ref r)) => Ok((l + r).into()),
-                    (&Value::Matrix(ref l), &Value::Matrix(ref r)) => Ok((l + r).into()),
-                    _ => Err(BinOpTypeError { op: *self }.into()),
-                }
-            }
-        }
-    }
-
-    fn eval_deriv<A: Scalar>(
-        &self,
-        _lhs_last: &Value<A>,
-        _rhs_last: &Value<A>,
-        deriv: &Value<A>,
-    ) -> Result<(Value<A>, Value<A>)> {
-        match self {
-            &BinaryOperator::Plus => Ok((deriv.clone(), deriv.clone())),
-        }
     }
 }
 

@@ -6,4 +6,5 @@ extern crate ndarray;
 extern crate ndarray_linalg;
 
 pub mod graph;
+pub mod operator;
 pub mod error;

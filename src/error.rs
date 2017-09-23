@@ -1,5 +1,5 @@
 
-use graph::*;
+use operator::*;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
