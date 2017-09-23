@@ -23,7 +23,7 @@
 //! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
 //! assert!((result - 6.0).abs() < 1e-7);
 //!
-//! g.deriv(sum).unwrap();
+//! g.eval_deriv(sum).unwrap();
 //! let dx = g.get_deriv(x).unwrap().as_scalar().unwrap();
 //! let dy = g.get_deriv(y).unwrap().as_scalar().unwrap();
 //! let dz = g.get_deriv(z).unwrap().as_scalar().unwrap();
