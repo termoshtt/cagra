@@ -22,6 +22,14 @@
 //! g.eval(sum, false).unwrap();
 //! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
 //! assert!((result - 6.0).abs() < 1e-7);
+//!
+//! g.deriv(sum).unwrap();
+//! let dx = g.get_deriv(x).unwrap().as_scalar().unwrap();
+//! let dy = g.get_deriv(y).unwrap().as_scalar().unwrap();
+//! let dz = g.get_deriv(z).unwrap().as_scalar().unwrap();
+//! assert!((dx - 1.0).abs() < 1e-7);
+//! assert!((dy - 1.0).abs() < 1e-7);
+//! assert!((dz + 1.0).abs() < 1e-7);
 //! ```
 
 use ndarray::*;
@@ -105,9 +113,16 @@ impl UnaryOperator {
 
     }
 
-    fn eval_deriv<A: Scalar>(&self, arg_last: &Value<A>, deriv: &Value<A>) -> Result<Value<A>> {
-        // TODO implmeent
-        Ok(Value::identity())
+    fn eval_deriv<A: Scalar>(&self, _arg_last: &Value<A>, deriv: &Value<A>) -> Result<Value<A>> {
+        match self {
+            &UnaryOperator::Negate => {
+                match deriv {
+                    &Value::Scalar(a) => Ok((-a).into()),
+                    &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
+                    &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
+                }
+            }
+        }
     }
 }
 
@@ -132,12 +147,13 @@ impl BinaryOperator {
 
     fn eval_deriv<A: Scalar>(
         &self,
-        lhs_last: &Value<A>,
-        rhs_last: &Value<A>,
+        _lhs_last: &Value<A>,
+        _rhs_last: &Value<A>,
         deriv: &Value<A>,
     ) -> Result<(Value<A>, Value<A>)> {
-        // TODO implmeent
-        Ok((Value::identity(), Value::identity()))
+        match self {
+            &BinaryOperator::Plus => Ok((deriv.clone(), deriv.clone())),
+        }
     }
 }
 
@@ -258,7 +274,7 @@ impl<A: Scalar> Graph<A> {
         self[node].deriv = Some(der);
         let prop = self[node].prop.clone();
         match prop {
-            Property::Variable(ref v) => {}
+            Property::Variable(_) => {}
             Property::UnaryOperator(ref op) => {
                 let arg = self.get_arg1(node);
                 let der = op.eval_deriv(
