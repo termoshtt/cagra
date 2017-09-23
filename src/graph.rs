@@ -19,7 +19,7 @@
 //! // sum = tmp - z
 //! let sum = g.sub(tmp, z);
 //!
-//! g.eval(sum, false).unwrap();
+//! g.eval_value(sum, false).unwrap();
 //! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
 //! assert!((result - 6.0).abs() < 1e-7);
 //!
@@ -100,7 +100,7 @@ pub enum UnaryOperator {
 }
 
 impl UnaryOperator {
-    fn exec<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
+    fn eval_value<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
         match self {
             &UnaryOperator::Negate => {
                 match arg {
@@ -132,7 +132,7 @@ pub enum BinaryOperator {
 }
 
 impl BinaryOperator {
-    fn exec<A: Scalar>(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
+    fn eval_value<A: Scalar>(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
         match self {
             &BinaryOperator::Plus => {
                 match (lhs, rhs) {
@@ -234,7 +234,7 @@ impl<A: Scalar> Graph<A> {
     /// Evaluate the value of the node recusively.
     ///
     /// * `use_cached` - Use the value if already calculated.
-    pub fn eval(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
+    pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
         let prop = self[node].prop.clone();
         let value_exists = self[node].value.is_some();
         match prop {
@@ -249,8 +249,8 @@ impl<A: Scalar> Graph<A> {
                     return Ok(());
                 }
                 let arg = self.get_arg1(node);
-                self.eval(arg, use_cached)?;
-                let res = op.exec(self.get_value(arg).unwrap())?;
+                self.eval_value(arg, use_cached)?;
+                let res = op.eval_value(self.get_value(arg).unwrap())?;
                 self[node].value = Some(res);
             }
             Property::BinaryOperator(ref op) => {
@@ -258,9 +258,9 @@ impl<A: Scalar> Graph<A> {
                     return Ok(());
                 }
                 let (lhs, rhs) = self.get_arg2(node);
-                self.eval(rhs, use_cached)?;
-                self.eval(lhs, use_cached)?;
-                let res = op.exec(
+                self.eval_value(rhs, use_cached)?;
+                self.eval_value(lhs, use_cached)?;
+                let res = op.eval_value(
                     self.get_value(lhs).unwrap(),
                     self.get_value(rhs).unwrap(),
                 )?;
@@ -297,7 +297,7 @@ impl<A: Scalar> Graph<A> {
         Ok(())
     }
 
-    pub fn deriv(&mut self, node: NodeIndex) -> Result<()> {
+    pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
         self.deriv_recur(node, Value::identity())
     }
 }
