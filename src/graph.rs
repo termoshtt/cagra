@@ -74,6 +74,14 @@ impl<A: Scalar> Node<A> {
             prop,
         }
     }
+
+    fn is_variable(&self) -> bool {
+        match self.prop {
+            Property::Variable(_) => true,
+            Property::UnaryOperator(_) => false,
+            Property::BinaryOperator(_) => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, IntoEnum)]
@@ -173,18 +181,23 @@ impl<A: Scalar> Graph<A> {
 
     pub fn scalar_variable(&mut self, name: &str, value: A) -> NodeIndex {
         let var = self.variable(name);
-        self.set_value(var, value);
+        self.set_value(var, value).unwrap();
         var
     }
 
     pub fn vector_variable(&mut self, name: &str, value: Array<A, Ix1>) -> NodeIndex {
         let var = self.variable(name);
-        self.set_value(var, value);
+        self.set_value(var, value).unwrap();
         var
     }
 
-    pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) {
-        self[node].value = Some(value.into());
+    pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) -> Result<()> {
+        if self[node].is_variable() {
+            self[node].value = Some(value.into());
+            Ok(())
+        } else {
+            Err(NodeTypeError {}.into())
+        }
     }
 
     pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {

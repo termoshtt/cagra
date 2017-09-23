@@ -8,6 +8,7 @@ pub enum Error {
     UnaryOpTypeError(UnaryOpTypeError),
     BinOpTypeError(BinOpTypeError),
     CastError(CastError),
+    NodeTypeError(NodeTypeError),
 }
 
 #[derive(Debug)]
@@ -22,3 +23,6 @@ pub struct BinOpTypeError {
 
 #[derive(Debug)]
 pub struct CastError {}
+
+#[derive(Debug)]
+pub struct NodeTypeError {}
