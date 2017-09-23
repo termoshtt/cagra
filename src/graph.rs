@@ -19,9 +19,17 @@
 //! // sum = tmp - z
 //! let sum = g.sub(tmp, z);
 //!
-//! g.eval(sum, false).unwrap();
+//! g.eval_value(sum, false).unwrap();
 //! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
 //! assert!((result - 6.0).abs() < 1e-7);
+//!
+//! g.eval_deriv(sum).unwrap();
+//! let dx = g.get_deriv(x).unwrap().as_scalar().unwrap();
+//! let dy = g.get_deriv(y).unwrap().as_scalar().unwrap();
+//! let dz = g.get_deriv(z).unwrap().as_scalar().unwrap();
+//! assert!((dx - 1.0).abs() < 1e-7);
+//! assert!((dy - 1.0).abs() < 1e-7);
+//! assert!((dz + 1.0).abs() < 1e-7);
 //! ```
 
 use ndarray::*;
@@ -45,17 +53,34 @@ impl<A: Scalar> Value<A> {
             _ => Err(CastError {}.into()),
         }
     }
+
+    pub fn identity() -> Self {
+        Value::Scalar(A::from_f64(1.0))
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
     value: Option<Value<A>>,
+    deriv: Option<Value<A>>,
     prop: Property,
 }
 
 impl<A: Scalar> Node<A> {
     fn new(prop: Property) -> Self {
-        Self { value: None, prop }
+        Self {
+            value: None,
+            deriv: None,
+            prop,
+        }
+    }
+
+    fn is_variable(&self) -> bool {
+        match self.prop {
+            Property::Variable(_) => true,
+            Property::UnaryOperator(_) => false,
+            Property::BinaryOperator(_) => false,
+        }
     }
 }
 
@@ -83,7 +108,7 @@ pub enum UnaryOperator {
 }
 
 impl UnaryOperator {
-    fn exec<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
+    fn eval_value<A: Scalar>(&self, arg: &Value<A>) -> Result<Value<A>> {
         match self {
             &UnaryOperator::Negate => {
                 match arg {
@@ -95,6 +120,18 @@ impl UnaryOperator {
         }
 
     }
+
+    fn eval_deriv<A: Scalar>(&self, _arg_last: &Value<A>, deriv: &Value<A>) -> Result<Value<A>> {
+        match self {
+            &UnaryOperator::Negate => {
+                match deriv {
+                    &Value::Scalar(a) => Ok((-a).into()),
+                    &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
+                    &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -103,7 +140,7 @@ pub enum BinaryOperator {
 }
 
 impl BinaryOperator {
-    fn exec<A: Scalar>(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
+    fn eval_value<A: Scalar>(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
         match self {
             &BinaryOperator::Plus => {
                 match (lhs, rhs) {
@@ -115,22 +152,22 @@ impl BinaryOperator {
             }
         }
     }
-}
 
-#[derive(Debug)]
-pub struct Edge<A: Scalar> {
-    value: Option<Value<A>>,
-}
-
-impl<A: Scalar> Edge<A> {
-    fn new() -> Self {
-        Edge { value: None }
+    fn eval_deriv<A: Scalar>(
+        &self,
+        _lhs_last: &Value<A>,
+        _rhs_last: &Value<A>,
+        deriv: &Value<A>,
+    ) -> Result<(Value<A>, Value<A>)> {
+        match self {
+            &BinaryOperator::Plus => Ok((deriv.clone(), deriv.clone())),
+        }
     }
 }
 
 /// Calculation graph based on `petgraph::graph::Graph`
 #[derive(Debug, NewType)]
-pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, Edge<A>>);
+pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, ()>);
 
 impl<A: Scalar> Graph<A> {
     pub fn new() -> Self {
@@ -144,32 +181,37 @@ impl<A: Scalar> Graph<A> {
 
     pub fn scalar_variable(&mut self, name: &str, value: A) -> NodeIndex {
         let var = self.variable(name);
-        self.set_value(var, value);
+        self.set_value(var, value).unwrap();
         var
     }
 
     pub fn vector_variable(&mut self, name: &str, value: Array<A, Ix1>) -> NodeIndex {
         let var = self.variable(name);
-        self.set_value(var, value);
+        self.set_value(var, value).unwrap();
         var
     }
 
-    pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) {
-        self[node].value = Some(value.into());
+    pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) -> Result<()> {
+        if self[node].is_variable() {
+            self[node].value = Some(value.into());
+            Ok(())
+        } else {
+            Err(NodeTypeError {}.into())
+        }
     }
 
     pub fn plus(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
         let plus = BinaryOperator::Plus;
         let p = self.add_node(Node::new(plus.into()));
-        self.add_edge(lhs, p, Edge::new());
-        self.add_edge(rhs, p, Edge::new());
+        self.add_edge(lhs, p, ());
+        self.add_edge(rhs, p, ());
         p
     }
 
     pub fn negate(&mut self, arg: NodeIndex) -> NodeIndex {
         let neg = UnaryOperator::Negate;
         let n = self.add_node(Node::new(neg.into()));
-        self.add_edge(arg, n, Edge::new());
+        self.add_edge(arg, n, ());
         n
     }
 
@@ -187,7 +229,7 @@ impl<A: Scalar> Graph<A> {
         let mut iter = self.neighbors_directed(op, Direction::Incoming);
         let rhs = iter.next().unwrap();
         let lhs = iter.next().unwrap();
-        (rhs, lhs)
+        (lhs, rhs)
     }
 
     /// Get the value of the node. If the value has not been caluclated,
@@ -196,35 +238,42 @@ impl<A: Scalar> Graph<A> {
         self[node].value.as_ref()
     }
 
+    /// Get the value of the node. If the value has not been caluclated,
+    /// returns `None`
+    pub fn get_deriv(&self, node: NodeIndex) -> Option<&Value<A>> {
+        self[node].deriv.as_ref()
+    }
+
     /// Evaluate the value of the node recusively.
     ///
     /// * `use_cached` - Use the value if already calculated.
-    pub fn eval(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
-        let n = self[node].clone();
-        match n.prop {
+    pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
+        let prop = self[node].prop.clone();
+        let value_exists = self[node].value.is_some();
+        match prop {
             Property::Variable(ref v) => {
-                if n.value.is_some() {
+                if value_exists {
                     return Ok(());
                 }
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
             Property::UnaryOperator(ref op) => {
-                if use_cached && n.value.is_some() {
+                if use_cached && value_exists {
                     return Ok(());
                 }
                 let arg = self.get_arg1(node);
-                self.eval(arg, use_cached)?;
-                let res = op.exec(self.get_value(arg).unwrap())?;
+                self.eval_value(arg, use_cached)?;
+                let res = op.eval_value(self.get_value(arg).unwrap())?;
                 self[node].value = Some(res);
             }
             Property::BinaryOperator(ref op) => {
-                if use_cached && n.value.is_some() {
+                if use_cached && value_exists {
                     return Ok(());
                 }
-                let (rhs, lhs) = self.get_arg2(node);
-                self.eval(rhs, use_cached)?;
-                self.eval(lhs, use_cached)?;
-                let res = op.exec(
+                let (lhs, rhs) = self.get_arg2(node);
+                self.eval_value(rhs, use_cached)?;
+                self.eval_value(lhs, use_cached)?;
+                let res = op.eval_value(
                     self.get_value(lhs).unwrap(),
                     self.get_value(rhs).unwrap(),
                 )?;
@@ -232,5 +281,36 @@ impl<A: Scalar> Graph<A> {
             }
         };
         Ok(())
+    }
+
+    fn deriv_recur(&mut self, node: NodeIndex, der: Value<A>) -> Result<()> {
+        self[node].deriv = Some(der);
+        let prop = self[node].prop.clone();
+        match prop {
+            Property::Variable(_) => {}
+            Property::UnaryOperator(ref op) => {
+                let arg = self.get_arg1(node);
+                let der = op.eval_deriv(
+                    self.get_value(arg).unwrap(),
+                    self.get_deriv(node).unwrap(),
+                )?;
+                self.deriv_recur(arg, der)?;
+            }
+            Property::BinaryOperator(ref op) => {
+                let (lhs, rhs) = self.get_arg2(node);
+                let (l_der, r_der) = op.eval_deriv(
+                    self.get_value(lhs).unwrap(),
+                    self.get_value(rhs).unwrap(),
+                    self.get_deriv(node).unwrap(),
+                )?;
+                self.deriv_recur(lhs, l_der)?;
+                self.deriv_recur(rhs, r_der)?;
+            }
+        };
+        Ok(())
+    }
+
+    pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
+        self.deriv_recur(node, Value::identity())
     }
 }
