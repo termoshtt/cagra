@@ -1,3 +1,4 @@
+//! Negate value
 
 use ndarray_linalg::*;
 

@@ -1,3 +1,4 @@
+//! Add two values
 
 use super::*;
 

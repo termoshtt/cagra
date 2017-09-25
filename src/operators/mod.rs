@@ -49,11 +49,13 @@ pub trait UnaryOperator<A: Scalar>: Clone + Debug {
     fn eval_deriv(&self, arg: &Value<A>, deriv: &Value<A>) -> Result<Value<A>>;
 }
 
+/// Enumerate of UnaryOperators implementing `UnaryOperator<A>` trait
 #[derive(Debug, Clone, Copy, IntoEnum)]
 pub enum UnaryOperatorAny {
     Neg(neg::Neg),
 }
 
+/// Negate operator
 pub fn neg() -> UnaryOperatorAny {
     neg::Neg {}.into()
 }
@@ -86,11 +88,13 @@ pub trait BinaryOperator<A: Scalar>: Clone + Debug {
     ) -> Result<(Value<A>, Value<A>)>;
 }
 
+/// Enumerate of BinaryOperator implementing `BinaryOperator<A>` trait
 #[derive(Debug, Clone, Copy, IntoEnum)]
 pub enum BinaryOperatorAny {
     Add(add::Add),
 }
 
+/// Add two values
 pub fn add() -> BinaryOperatorAny {
     add::Add {}.into()
 }
