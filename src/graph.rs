@@ -37,7 +37,7 @@ use ndarray_linalg::*;
 use petgraph;
 use petgraph::prelude::*;
 
-use operator::*;
+use operators::*;
 use error::*;
 
 /// Node of the calculation graph.
@@ -55,8 +55,8 @@ pub struct Node<A: Scalar> {
 #[derive(Debug, Clone, IntoEnum)]
 enum Property {
     Variable(Variable),
-    UnaryOperator(UnaryOperator),
-    BinaryOperator(BinaryOperator),
+    UnaryOperator(UnaryOperatorAny),
+    BinaryOperator(BinaryOperatorAny),
 }
 
 impl<A: Scalar> Node<A> {
@@ -130,16 +130,14 @@ impl<A: Scalar> Graph<A> {
     }
 
     pub fn add(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let add = BinaryOperator::Plus;
-        let p = self.add_node(Node::new(add.into()));
+        let p = self.add_node(Node::new(add().into()));
         self.add_edge(lhs, p, ());
         self.add_edge(rhs, p, ());
         p
     }
 
     pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
-        let neg = UnaryOperator::Negate;
-        let n = self.add_node(Node::new(neg.into()));
+        let n = self.add_node(Node::new(neg().into()));
         self.add_edge(arg, n, ());
         n
     }
