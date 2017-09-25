@@ -8,6 +8,7 @@ use error::*;
 
 pub mod neg;
 pub mod add;
+pub mod scalar_mul;
 
 /// Value in graph
 ///
@@ -95,14 +96,25 @@ pub enum BinaryOperatorAny {
 }
 
 /// Add two values
+#[derive(Debug, Clone, Copy, IntoEnum)]
+pub enum BinaryOperatorAny {
+    Add(add::Add),
+    ScalarMul(scalar_mul::ScalarMul),
+}
+
 pub fn add() -> BinaryOperatorAny {
     add::Add {}.into()
+}
+
+pub fn scalar_mul() -> BinaryOperatorAny {
+    scalar_mul::ScalarMul {}.into()
 }
 
 impl<A: Scalar> BinaryOperator<A> for BinaryOperatorAny {
     fn eval_value(&self, lhs: &Value<A>, rhs: &Value<A>) -> Result<Value<A>> {
         match self {
             &BinaryOperatorAny::Add(op) => op.eval_value(lhs, rhs),
+            &BinaryOperatorAny::ScalarMul(op) => op.eval_value(lhs, rhs),
         }
     }
 
@@ -114,6 +126,7 @@ impl<A: Scalar> BinaryOperator<A> for BinaryOperatorAny {
     ) -> Result<(Value<A>, Value<A>)> {
         match self {
             &BinaryOperatorAny::Add(op) => op.eval_deriv(lhs, rhs, deriv),
+            &BinaryOperatorAny::ScalarMul(op) => op.eval_deriv(lhs, rhs, deriv),
         }
     }
 }
