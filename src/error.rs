@@ -1,6 +1,4 @@
 
-use operator::*;
-
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, IntoEnum)]
@@ -12,14 +10,10 @@ pub enum Error {
 }
 
 #[derive(Debug)]
-pub struct UnaryOpTypeError {
-    pub(crate) op: UnaryOperator,
-}
+pub struct UnaryOpTypeError {}
 
 #[derive(Debug)]
-pub struct BinOpTypeError {
-    pub(crate) op: BinaryOperator,
-}
+pub struct BinOpTypeError {}
 
 #[derive(Debug)]
 pub struct CastError {}
