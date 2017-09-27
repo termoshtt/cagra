@@ -1,6 +1,6 @@
 //! # Examples
 //!
-//! Create a graph for `(x + y) - z`
+//! Create a graph for `(x + y) - 2*z`
 //!
 //! ```
 //! use cagra::graph::*;
@@ -14,12 +14,16 @@
 //! let tmp = g.add(x, y);
 //! // z = -3.0
 //! let z = g.scalar_variable("z", -3.0);
-//! // sum = tmp - z
-//! let sum = g.sub(tmp, z);
+//! // a = 2.0;
+//! let a = g.scalar_variable("a", 2.0);
+//! // az = a * z
+//! let az = g.mul(a, z);
+//! // sum = tmp - az
+//! let sum = g.sub(tmp, az);
 //!
 //! g.eval_value(sum, false).unwrap();
 //! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
-//! assert!((result - 6.0).abs() < 1e-7);
+//! assert!((result - 9.0).abs() < 1e-7);
 //!
 //! g.eval_deriv(sum).unwrap();
 //! let dx = g.get_deriv(x).unwrap().as_scalar().unwrap();
@@ -27,7 +31,7 @@
 //! let dz = g.get_deriv(z).unwrap().as_scalar().unwrap();
 //! assert!((dx - 1.0).abs() < 1e-7);
 //! assert!((dy - 1.0).abs() < 1e-7);
-//! assert!((dz + 1.0).abs() < 1e-7);
+//! assert!((dz + 2.0).abs() < 1e-7);
 //! ```
 
 #[macro_use]
