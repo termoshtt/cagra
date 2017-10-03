@@ -9,20 +9,11 @@ use super::*;
 pub struct Neg;
 
 impl<A: Scalar> UnaryOperator<A> for Neg {
-    fn eval_value(&self, arg: &Value<A>) -> Result<Value<A>> {
-        match arg {
-            &Value::Scalar(a) => Ok((-a).into()),
-            &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
-            &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
-        }
-
+    fn eval_value(&self, arg: A) -> A {
+        -arg
     }
 
-    fn eval_deriv(&self, _arg: &Value<A>, deriv: &Value<A>) -> Result<Value<A>> {
-        match deriv {
-            &Value::Scalar(a) => Ok((-a).into()),
-            &Value::Vector(ref a) => Ok((-a.to_owned()).into()),
-            &Value::Matrix(ref a) => Ok((-a.to_owned()).into()),
-        }
+    fn eval_deriv(&self, _arg: A, deriv: A) -> A {
+        -deriv
     }
 }
