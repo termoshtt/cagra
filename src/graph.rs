@@ -67,14 +67,14 @@ impl<A: Scalar> Graph<A> {
     }
 
     /// Create new empty variable
-    pub fn variable(&mut self, name: &str) -> NodeIndex {
+    pub fn empty_variable(&mut self, name: &str) -> NodeIndex {
         let var = Variable::new(name);
         self.add_node(Node::new(var.into()))
     }
 
-    /// Create new scalar variable
-    pub fn scalar_variable(&mut self, name: &str, value: A) -> NodeIndex {
-        let var = self.variable(name);
+    /// Create new variable with value
+    pub fn variable(&mut self, name: &str, value: A) -> NodeIndex {
+        let var = self.empty_variable(name);
         self.set_value(var, value).unwrap();
         var
     }
@@ -134,40 +134,39 @@ impl<A: Scalar> Graph<A> {
     /// Evaluate the value of the node recusively.
     ///
     /// * `use_cached` - Use the value if already calculated.
-    pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) -> Result<()> {
+    pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) {
         // FIXME This code traces the graph twice, but it may be able to done by once.
         let prop = self[node].prop.clone();
         let value_exists = self[node].value.is_some();
         match prop {
             Property::Variable(ref v) => {
                 if value_exists {
-                    return Ok(());
+                    return;
                 }
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
             Property::UnaryOperator(ref op) => {
                 if use_cached && value_exists {
-                    return Ok(());
+                    return;
                 }
                 let arg = self.get_arg1(node);
-                self.eval_value(arg, use_cached)?;
+                self.eval_value(arg, use_cached);
                 self[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
             }
             Property::BinaryOperator(ref op) => {
                 if use_cached && value_exists {
-                    return Ok(());
+                    return;
                 }
                 let (lhs, rhs) = self.get_arg2(node);
-                self.eval_value(rhs, use_cached)?;
-                self.eval_value(lhs, use_cached)?;
+                self.eval_value(rhs, use_cached);
+                self.eval_value(lhs, use_cached);
                 let res = op.eval_value(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
                 self[node].value = Some(res);
             }
         };
-        Ok(())
     }
 
-    fn deriv_recur(&mut self, node: NodeIndex, der: A) -> Result<()> {
+    fn deriv_recur(&mut self, node: NodeIndex, der: A) {
         self[node].deriv = Some(der);
         let prop = self[node].prop.clone();
         match prop {
@@ -176,7 +175,7 @@ impl<A: Scalar> Graph<A> {
                 let arg = self.get_arg1(node);
                 let der =
                     op.eval_deriv(self.get_value(arg).unwrap(), self.get_deriv(node).unwrap());
-                self.deriv_recur(arg, der)?;
+                self.deriv_recur(arg, der);
             }
             Property::BinaryOperator(ref op) => {
                 let (lhs, rhs) = self.get_arg2(node);
@@ -185,15 +184,14 @@ impl<A: Scalar> Graph<A> {
                     self.get_value(rhs).unwrap(),
                     self.get_deriv(node).unwrap(),
                 );
-                self.deriv_recur(lhs, l_der)?;
-                self.deriv_recur(rhs, r_der)?;
+                self.deriv_recur(lhs, l_der);
+                self.deriv_recur(rhs, r_der);
             }
         };
-        Ok(())
     }
 
     /// Evaluate derivative recursively.
-    pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
+    pub fn eval_deriv(&mut self, node: NodeIndex) {
         self.deriv_recur(node, A::one())
     }
 }

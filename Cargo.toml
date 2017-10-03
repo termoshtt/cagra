@@ -13,6 +13,5 @@ categories    = ["algorithms", "science"]
 
 [dependencies]
 petgraph = "0.4"
-ndarray = "0.10"
 ndarray-linalg = "0.6"
 procedurals = "0.2"
