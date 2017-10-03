@@ -18,13 +18,13 @@
 //! let sum = g.sub(tmp, z);
 //!
 //! g.eval_value(sum, false).unwrap();
-//! let result = g.get_value(sum).unwrap().as_scalar().unwrap();
+//! let result = g.get_value(sum).unwrap();
 //! assert!((result - 6.0).abs() < 1e-7);
 //!
 //! g.eval_deriv(sum).unwrap();
-//! let dx = g.get_deriv(x).unwrap().as_scalar().unwrap();
-//! let dy = g.get_deriv(y).unwrap().as_scalar().unwrap();
-//! let dz = g.get_deriv(z).unwrap().as_scalar().unwrap();
+//! let dx = g.get_deriv(x).unwrap();
+//! let dy = g.get_deriv(y).unwrap();
+//! let dz = g.get_deriv(z).unwrap();
 //! assert!((dx - 1.0).abs() < 1e-7);
 //! assert!((dy - 1.0).abs() < 1e-7);
 //! assert!((dz + 1.0).abs() < 1e-7);

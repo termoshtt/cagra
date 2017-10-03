@@ -1,6 +1,5 @@
 //! Calculation graph
 
-use ndarray::*;
 use ndarray_linalg::*;
 use petgraph;
 use petgraph::prelude::*;
@@ -14,8 +13,8 @@ use error::*;
 /// using this value.
 #[derive(Debug, Clone)]
 pub struct Node<A: Scalar> {
-    value: Option<Value<A>>,
-    deriv: Option<Value<A>>,
+    value: Option<A>,
+    deriv: Option<A>,
     prop: Property,
 }
 
@@ -80,15 +79,8 @@ impl<A: Scalar> Graph<A> {
         var
     }
 
-    /// Create new vector variable
-    pub fn vector_variable(&mut self, name: &str, value: Array<A, Ix1>) -> NodeIndex {
-        let var = self.variable(name);
-        self.set_value(var, value).unwrap();
-        var
-    }
-
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
-    pub fn set_value<V: Into<Value<A>>>(&mut self, node: NodeIndex, value: V) -> Result<()> {
+    pub fn set_value(&mut self, node: NodeIndex, value: A) -> Result<()> {
         if self[node].is_variable() {
             self[node].value = Some(value.into());
             Ok(())
@@ -129,14 +121,14 @@ impl<A: Scalar> Graph<A> {
 
     /// Get the value of the node. If the value has not been caluclated,
     /// returns `None`
-    pub fn get_value(&self, node: NodeIndex) -> Option<&Value<A>> {
-        self[node].value.as_ref()
+    pub fn get_value(&self, node: NodeIndex) -> Option<A> {
+        self[node].value
     }
 
     /// Get the value of the node. If the value has not been caluclated,
     /// returns `None`
-    pub fn get_deriv(&self, node: NodeIndex) -> Option<&Value<A>> {
-        self[node].deriv.as_ref()
+    pub fn get_deriv(&self, node: NodeIndex) -> Option<A> {
+        self[node].deriv
     }
 
     /// Evaluate the value of the node recusively.
@@ -159,8 +151,7 @@ impl<A: Scalar> Graph<A> {
                 }
                 let arg = self.get_arg1(node);
                 self.eval_value(arg, use_cached)?;
-                let res = op.eval_value(self.get_value(arg).unwrap())?;
-                self[node].value = Some(res);
+                self[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
             }
             Property::BinaryOperator(ref op) => {
                 if use_cached && value_exists {
@@ -169,27 +160,22 @@ impl<A: Scalar> Graph<A> {
                 let (lhs, rhs) = self.get_arg2(node);
                 self.eval_value(rhs, use_cached)?;
                 self.eval_value(lhs, use_cached)?;
-                let res = op.eval_value(
-                    self.get_value(lhs).unwrap(),
-                    self.get_value(rhs).unwrap(),
-                )?;
+                let res = op.eval_value(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
                 self[node].value = Some(res);
             }
         };
         Ok(())
     }
 
-    fn deriv_recur(&mut self, node: NodeIndex, der: Value<A>) -> Result<()> {
+    fn deriv_recur(&mut self, node: NodeIndex, der: A) -> Result<()> {
         self[node].deriv = Some(der);
         let prop = self[node].prop.clone();
         match prop {
             Property::Variable(_) => {}
             Property::UnaryOperator(ref op) => {
                 let arg = self.get_arg1(node);
-                let der = op.eval_deriv(
-                    self.get_value(arg).unwrap(),
-                    self.get_deriv(node).unwrap(),
-                )?;
+                let der =
+                    op.eval_deriv(self.get_value(arg).unwrap(), self.get_deriv(node).unwrap());
                 self.deriv_recur(arg, der)?;
             }
             Property::BinaryOperator(ref op) => {
@@ -198,7 +184,7 @@ impl<A: Scalar> Graph<A> {
                     self.get_value(lhs).unwrap(),
                     self.get_value(rhs).unwrap(),
                     self.get_deriv(node).unwrap(),
-                )?;
+                );
                 self.deriv_recur(lhs, l_der)?;
                 self.deriv_recur(rhs, r_der)?;
             }
@@ -208,6 +194,6 @@ impl<A: Scalar> Graph<A> {
 
     /// Evaluate derivative recursively.
     pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
-        self.deriv_recur(node, Value::identity())
+        self.deriv_recur(node, A::one())
     }
 }
