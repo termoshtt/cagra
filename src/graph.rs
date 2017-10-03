@@ -96,6 +96,13 @@ impl<A: Scalar> Graph<A> {
         p
     }
 
+    pub fn mul(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let p = self.add_node(Node::new(mul().into()));
+        self.add_edge(lhs, p, ());
+        self.add_edge(rhs, p, ());
+        p
+    }
+
     pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
         let n = self.add_node(Node::new(neg().into()));
         self.add_edge(arg, n, ());
