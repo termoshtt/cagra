@@ -68,19 +68,36 @@ impl<A> Variable<A> {
     fn new(name: &str) -> Self {
         Variable {
             name: name.to_string(),
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 }
 
 /// Calculation graph based on `petgraph::graph::Graph`
-#[derive(Debug, NewType)]
-pub struct Graph<A: Field>(petgraph::graph::Graph<Node<A>, ()>);
+#[derive(Debug)]
+pub struct Graph<A: Field> {
+    graph: petgraph::graph::Graph<Node<A>, ()>,
+}
+
+impl<A: Field> ::std::ops::Deref for Graph<A> {
+    type Target = petgraph::graph::Graph<Node<A>, ()>;
+    fn deref(&self) -> &Self::Target {
+        &self.graph
+    }
+}
+
+impl<A: Field> ::std::ops::DerefMut for Graph<A> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.graph
+    }
+}
 
 impl<A: Field> Graph<A> {
     /// new graph.
     pub fn new() -> Self {
-        petgraph::graph::Graph::new().into()
+        Self {
+            graph: petgraph::graph::Graph::new(),
+        }
     }
 
     /// Create new empty variable
