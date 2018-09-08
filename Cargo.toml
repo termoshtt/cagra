@@ -13,6 +13,7 @@ categories    = ["algorithms", "science"]
 
 [dependencies]
 petgraph = "0.4"
-procedurals = "0.2"
+failure = "0.1"
 num-complex = "0.2"
 num-traits = "0.2"
+procedurals = "*"
