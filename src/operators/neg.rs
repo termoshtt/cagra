@@ -15,3 +15,8 @@ impl<A: Field> UnaryOperator<A> for Neg {
         -deriv
     }
 }
+
+/// Negate operator
+pub fn neg<A: Field>() -> UnaryOp<A> {
+    Rc::new(Neg {})
+}

@@ -14,3 +14,8 @@ impl<A: Field> BinaryOperator<A> for Add {
         (deriv, deriv)
     }
 }
+
+/// Add two values
+pub fn add<A: Field>() -> BinOp<A> {
+    Rc::new(Add {})
+}
