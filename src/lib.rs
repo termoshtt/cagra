@@ -37,8 +37,10 @@
 #[macro_use]
 extern crate procedurals;
 extern crate petgraph;
-extern crate ndarray_linalg;
+extern crate num_complex;
+extern crate num_traits;
 
+pub mod error;
 pub mod graph;
 pub mod operators;
-pub mod error;
+pub mod scalar;

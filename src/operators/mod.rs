@@ -1,14 +1,14 @@
 //! Value and operators in calculation graph
 
+use scalar::Field;
 use std::fmt::Debug;
-use ndarray_linalg::*;
 
-pub mod neg;
 pub mod add;
 pub mod mul;
+pub mod neg;
 
 /// Unary Operators
-pub trait UnaryOperator<A: Scalar>: Clone + Debug {
+pub trait UnaryOperator<A: Field>: Clone + Debug {
     /// Evaluate the result value of the operator
     fn eval_value(&self, arg: A) -> A;
     /// Evaluate the derivative of the operator multiplied by the received
@@ -27,7 +27,7 @@ pub fn neg() -> UnaryOperatorAny {
     neg::Neg {}.into()
 }
 
-impl<A: Scalar> UnaryOperator<A> for UnaryOperatorAny {
+impl<A: Field> UnaryOperator<A> for UnaryOperatorAny {
     fn eval_value(&self, arg: A) -> A {
         match self {
             &UnaryOperatorAny::Neg(op) => op.eval_value(arg),
@@ -42,7 +42,7 @@ impl<A: Scalar> UnaryOperator<A> for UnaryOperatorAny {
 }
 
 /// Binary Operators
-pub trait BinaryOperator<A: Scalar>: Clone + Debug {
+pub trait BinaryOperator<A: Field>: Clone + Debug {
     /// Evaluate the result value of the operator
     fn eval_value(&self, lhs: A, rhs: A) -> A;
     /// Evaluate the derivative of the operator multiplied by the received
@@ -66,7 +66,7 @@ pub fn mul() -> BinaryOperatorAny {
     mul::Mul {}.into()
 }
 
-impl<A: Scalar> BinaryOperator<A> for BinaryOperatorAny {
+impl<A: Field> BinaryOperator<A> for BinaryOperatorAny {
     fn eval_value(&self, lhs: A, rhs: A) -> A {
         match self {
             &BinaryOperatorAny::Add(op) => op.eval_value(lhs, rhs),
