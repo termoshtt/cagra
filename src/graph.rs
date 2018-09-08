@@ -87,7 +87,9 @@ impl<A: Field> Graph<A> {
             self[node].value = Some(value.into());
             Ok(())
         } else {
-            Err(NodeTypeError {}.into())
+            Err(Error::NodeTypeError {
+                index: node.index(),
+            })
         }
     }
 

@@ -35,10 +35,12 @@
 //! ```
 
 #[macro_use]
+extern crate failure;
+#[macro_use]
 extern crate procedurals;
-extern crate petgraph;
 extern crate num_complex;
 extern crate num_traits;
+extern crate petgraph;
 
 pub mod error;
 pub mod graph;
