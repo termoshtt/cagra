@@ -1,14 +1,13 @@
 //! Negate value
 
-use ndarray_linalg::*;
-
 use super::*;
+use scalar::Field;
 
 /// Negate
 #[derive(Debug, Clone, Copy)]
 pub struct Neg;
 
-impl<A: Scalar> UnaryOperator<A> for Neg {
+impl<A: Field> UnaryOperator<A> for Neg {
     fn eval_value(&self, arg: A) -> A {
         -arg
     }

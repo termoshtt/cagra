@@ -5,7 +5,7 @@ use super::*;
 #[derive(Debug, Clone, Copy)]
 pub struct Add;
 
-impl<A: Scalar> BinaryOperator<A> for Add {
+impl<A: Field> BinaryOperator<A> for Add {
     fn eval_value(&self, lhs: A, rhs: A) -> A {
         lhs + rhs
     }

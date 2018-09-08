@@ -1,18 +1,18 @@
 //! Calculation graph
 
-use ndarray_linalg::*;
 use petgraph;
 use petgraph::prelude::*;
 
-use operators::*;
 use error::*;
+use operators::*;
+use scalar::Field;
 
 /// Node of the calculation graph.
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
 #[derive(Debug, Clone)]
-pub struct Node<A: Scalar> {
+pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
     prop: Property,
@@ -26,7 +26,7 @@ enum Property {
     BinaryOperator(BinaryOperatorAny),
 }
 
-impl<A: Scalar> Node<A> {
+impl<A: Field> Node<A> {
     fn new(prop: Property) -> Self {
         Self {
             value: None,
@@ -52,15 +52,17 @@ struct Variable {
 
 impl Variable {
     fn new(name: &str) -> Self {
-        Variable { name: name.to_string() }
+        Variable {
+            name: name.to_string(),
+        }
     }
 }
 
 /// Calculation graph based on `petgraph::graph::Graph`
 #[derive(Debug, NewType)]
-pub struct Graph<A: Scalar>(petgraph::graph::Graph<Node<A>, ()>);
+pub struct Graph<A: Field>(petgraph::graph::Graph<Node<A>, ()>);
 
-impl<A: Scalar> Graph<A> {
+impl<A: Field> Graph<A> {
     /// new graph.
     pub fn new() -> Self {
         petgraph::graph::Graph::new().into()
