@@ -2,6 +2,7 @@
 
 use petgraph;
 use petgraph::prelude::*;
+use std::collections::{hash_map::Entry, HashMap};
 use std::marker::PhantomData;
 
 use super::error::*;
@@ -77,6 +78,7 @@ impl<A> Variable<A> {
 #[derive(Debug)]
 pub struct Graph<A: Field> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
+    name_space: HashMap<String, NodeIndex>,
 }
 
 impl<A: Field> ::std::ops::Deref for Graph<A> {
@@ -97,20 +99,29 @@ impl<A: Field> Graph<A> {
     pub fn new() -> Self {
         Self {
             graph: petgraph::graph::Graph::new(),
+            name_space: HashMap::new(),
         }
     }
 
     /// Create new empty variable
-    pub fn empty_variable(&mut self, name: &str) -> NodeIndex {
-        let var = Variable::new(name);
-        self.add_node(Node::variable(var))
+    pub fn empty_variable(&mut self, name: &str) -> Result<NodeIndex> {
+        // check name duplication
+        match self.name_space.entry(name.into()) {
+            Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
+            Entry::Vacant(entry) => {
+                let var = Variable::new(name);
+                let id = self.graph.add_node(Node::variable(var));
+                entry.insert(id);
+                Ok(id)
+            }
+        }
     }
 
     /// Create new variable with value
-    pub fn variable(&mut self, name: &str, value: A) -> NodeIndex {
-        let var = self.empty_variable(name);
+    pub fn variable(&mut self, name: &str, value: A) -> Result<NodeIndex>{
+        let var = self.empty_variable(name)?;
         self.set_value(var, value).unwrap();
-        var
+        Ok(var)
     }
 
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
