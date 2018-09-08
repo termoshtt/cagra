@@ -3,9 +3,9 @@
 use petgraph;
 use petgraph::prelude::*;
 
-use error::*;
-use operators::*;
-use scalar::Field;
+use super::error::*;
+use super::operators::*;
+use super::scalar::Field;
 
 /// Node of the calculation graph.
 ///

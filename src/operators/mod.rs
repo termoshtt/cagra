@@ -1,6 +1,6 @@
 //! Value and operators in calculation graph
 
-use scalar::Field;
+use super::scalar::Field;
 use std::fmt::Debug;
 
 pub mod add;

@@ -1,7 +1,6 @@
 //! Negate value
 
 use super::*;
-use scalar::Field;
 
 /// Negate
 #[derive(Debug, Clone, Copy)]
