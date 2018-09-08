@@ -1,7 +1,6 @@
 //! Negate value
 
 use super::*;
-use scalar::Field;
 
 /// Negate
 #[derive(Debug, Clone, Copy)]
@@ -15,4 +14,9 @@ impl<A: Field> UnaryOperator<A> for Neg {
     fn eval_deriv(&self, _arg: A, deriv: A) -> A {
         -deriv
     }
+}
+
+/// Negate operator
+pub fn neg<A: Field>() -> UnaryOp<A> {
+    Rc::new(Neg {})
 }

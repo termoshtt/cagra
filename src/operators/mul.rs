@@ -14,3 +14,7 @@ impl<A: Field> BinaryOperator<A> for Mul {
         (rhs * deriv, lhs * deriv)
     }
 }
+
+pub fn mul<A: Field>() -> BinOp<A> {
+    Rc::new(Mul {})
+}
