@@ -2,7 +2,7 @@
 
 use super::scalar::Field;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Unary {
     Neg,
 }
@@ -23,7 +23,7 @@ impl Unary {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Binary {
     Add,
     Mul,

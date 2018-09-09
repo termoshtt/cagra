@@ -11,7 +11,7 @@ use super::scalar::Field;
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
@@ -19,7 +19,7 @@ pub struct Node<A: Field> {
 }
 
 /// Extra propaties of the `Node` accoding to the node type.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 enum Property {
     Variable(Variable),
     Unary(Unary),
@@ -67,7 +67,7 @@ impl<A: Field> From<Variable> for Node<A> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Variable {
     name: String,
 }
@@ -81,7 +81,7 @@ impl Variable {
 }
 
 /// Calculation graph based on `petgraph::graph::Graph`
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph<A: Field> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
     name_space: HashMap<String, NodeIndex>,
