@@ -87,19 +87,6 @@ pub struct Graph<A: Field> {
     name_space: HashMap<String, NodeIndex>,
 }
 
-impl<A: Field> ::std::ops::Deref for Graph<A> {
-    type Target = petgraph::graph::Graph<Node<A>, ()>;
-    fn deref(&self) -> &Self::Target {
-        &self.graph
-    }
-}
-
-impl<A: Field> ::std::ops::DerefMut for Graph<A> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.graph
-    }
-}
-
 impl<A: Field> Graph<A> {
     /// new graph.
     pub fn new() -> Self {
@@ -132,8 +119,8 @@ impl<A: Field> Graph<A> {
 
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
     pub fn set_value(&mut self, node: NodeIndex, value: A) -> Result<()> {
-        if self[node].is_variable() {
-            self[node].value = Some(value.into());
+        if self.graph[node].is_variable() {
+            self.graph[node].value = Some(value.into());
             Ok(())
         } else {
             Err(Error::NodeTypeError {
@@ -143,22 +130,22 @@ impl<A: Field> Graph<A> {
     }
 
     pub fn add(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.add_node(Binary::Add.into());
-        self.add_edge(lhs, p, ());
-        self.add_edge(rhs, p, ());
+        let p = self.graph.add_node(Binary::Add.into());
+        self.graph.add_edge(lhs, p, ());
+        self.graph.add_edge(rhs, p, ());
         p
     }
 
     pub fn mul(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.add_node(Binary::Mul.into());
-        self.add_edge(lhs, p, ());
-        self.add_edge(rhs, p, ());
+        let p = self.graph.add_node(Binary::Mul.into());
+        self.graph.add_edge(lhs, p, ());
+        self.graph.add_edge(rhs, p, ());
         p
     }
 
     pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
-        let n = self.add_node(Unary::Neg.into());
-        self.add_edge(arg, n, ());
+        let n = self.graph.add_node(Unary::Neg.into());
+        self.graph.add_edge(arg, n, ());
         n
     }
 
@@ -186,12 +173,12 @@ impl<A: Field> Graph<A> {
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
-        let mut iter = self.neighbors_directed(op, Direction::Incoming);
+        let mut iter = self.graph.neighbors_directed(op, Direction::Incoming);
         iter.next().unwrap()
     }
 
     fn get_arg2(&mut self, op: NodeIndex) -> (NodeIndex, NodeIndex) {
-        let mut iter = self.neighbors_directed(op, Direction::Incoming);
+        let mut iter = self.graph.neighbors_directed(op, Direction::Incoming);
         let rhs = iter.next().unwrap();
         let lhs = iter.next().unwrap();
         (lhs, rhs)
@@ -200,13 +187,13 @@ impl<A: Field> Graph<A> {
     /// Get the value of the node. If the value has not been caluclated,
     /// returns `None`
     pub fn get_value(&self, node: NodeIndex) -> Option<A> {
-        self[node].value
+        self.graph[node].value
     }
 
     /// Get the value of the node. If the value has not been caluclated,
     /// returns `None`
     pub fn get_deriv(&self, node: NodeIndex) -> Option<A> {
-        self[node].deriv
+        self.graph[node].deriv
     }
 
     /// Evaluate the value of the node recusively.
@@ -214,8 +201,8 @@ impl<A: Field> Graph<A> {
     /// * `use_cached` - Use the value if already calculated.
     pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) {
         // FIXME This code traces the graph twice, but it may be able to done by once.
-        let prop = self[node].prop.clone();
-        let value_exists = self[node].value.is_some();
+        let prop = self.graph[node].prop.clone();
+        let value_exists = self.graph[node].value.is_some();
         match prop {
             Property::Variable(ref v) => {
                 if value_exists {
@@ -229,7 +216,7 @@ impl<A: Field> Graph<A> {
                 }
                 let arg = self.get_arg1(node);
                 self.eval_value(arg, use_cached);
-                self[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
+                self.graph[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
             }
             Property::Binary(ref op) => {
                 if use_cached && value_exists {
@@ -239,14 +226,14 @@ impl<A: Field> Graph<A> {
                 self.eval_value(rhs, use_cached);
                 self.eval_value(lhs, use_cached);
                 let res = op.eval_value(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
-                self[node].value = Some(res);
+                self.graph[node].value = Some(res);
             }
         };
     }
 
     fn deriv_recur(&mut self, node: NodeIndex, der: A) {
-        self[node].deriv = Some(der);
-        let prop = self[node].prop.clone();
+        self.graph[node].deriv = Some(der);
+        let prop = self.graph[node].prop.clone();
         match prop {
             Property::Variable(_) => {}
             Property::Unary(ref op) => {
