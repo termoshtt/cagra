@@ -162,7 +162,21 @@ impl<A: Field> Graph<A> {
     }
 
     pub fn get_index(&self, name: &str) -> Result<NodeIndex> {
-        self.name_space.get(name).cloned().ok_or(Error::UndefinedName { name: name.into() })
+        self.name_space
+            .get(name)
+            .cloned()
+            .ok_or(Error::UndefinedName { name: name.into() })
+    }
+
+    pub fn set_index(&mut self, name: &str, id: NodeIndex) -> Result<()> {
+        // check name duplication
+        match self.name_space.entry(name.into()) {
+            Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
+            Entry::Vacant(entry) => {
+                entry.insert(id);
+                Ok(())
+            }
+        }
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
