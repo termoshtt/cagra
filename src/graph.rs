@@ -118,7 +118,7 @@ impl<A: Field> Graph<A> {
     }
 
     /// Create new variable with value
-    pub fn variable(&mut self, name: &str, value: A) -> Result<NodeIndex>{
+    pub fn variable(&mut self, name: &str, value: A) -> Result<NodeIndex> {
         let var = self.empty_variable(name)?;
         self.set_value(var, value).unwrap();
         Ok(var)
@@ -159,6 +159,10 @@ impl<A: Field> Graph<A> {
     pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
         let m_rhs = self.neg(rhs);
         self.add(lhs, m_rhs)
+    }
+
+    pub fn get_index(&self, name: &str) -> Result<NodeIndex> {
+        self.name_space.get(name).cloned().ok_or(Error::UndefinedName { name: name.into() })
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
