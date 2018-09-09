@@ -3,7 +3,6 @@
 use petgraph;
 use petgraph::prelude::*;
 use std::collections::{hash_map::Entry, HashMap};
-use std::marker::PhantomData;
 
 use super::error::*;
 use super::operators::*;
@@ -17,59 +16,67 @@ use super::scalar::Field;
 pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
-    prop: Property<A>,
+    prop: Property,
 }
 
 /// Extra propaties of the `Node` accoding to the node type.
 #[derive(Debug, Clone)]
-enum Property<A> {
-    Variable(Variable<A>),
-    UnaryOp(UnaryOp<A>),
-    BinOp(BinOp<A>),
+enum Property {
+    Variable(Variable),
+    Unary(Unary),
+    Binary(Binary),
 }
 
 impl<A: Field> Node<A> {
-    fn variable(var: Variable<A>) -> Self {
-        Self::new(Property::Variable(var))
-    }
-
-    fn unray_op(op: UnaryOp<A>) -> Self {
-        Self::new(Property::UnaryOp(op))
-    }
-
-    fn bin_op(op: BinOp<A>) -> Self {
-        Self::new(Property::BinOp(op))
-    }
-
-    fn new(prop: Property<A>) -> Self {
-        Self {
-            value: None,
-            deriv: None,
-            prop,
-        }
-    }
-
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
         match self.prop {
             Property::Variable(_) => true,
-            Property::UnaryOp(_) => false,
-            Property::BinOp(_) => false,
+            Property::Unary(_) => false,
+            Property::Binary(_) => false,
+        }
+    }
+}
+
+impl<A: Field> From<Unary> for Node<A> {
+    fn from(op: Unary) -> Self {
+        Self {
+            value: None,
+            deriv: None,
+            prop: Property::Unary(op),
+        }
+    }
+}
+
+impl<A: Field> From<Binary> for Node<A> {
+    fn from(op: Binary) -> Self {
+        Self {
+            value: None,
+            deriv: None,
+            prop: Property::Binary(op),
+        }
+    }
+}
+
+impl<A: Field> From<Variable> for Node<A> {
+    fn from(var : Variable) -> Self {
+        Self {
+            value: None,
+            deriv: None,
+            prop: Property::Variable(var),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-struct Variable<A> {
+struct Variable {
     name: String,
-    phantom: PhantomData<A>,
 }
 
-impl<A> Variable<A> {
+impl Variable {
     fn new(name: &str) -> Self {
         Variable {
             name: name.to_string(),
-            phantom: PhantomData,
         }
     }
 }
@@ -110,7 +117,7 @@ impl<A: Field> Graph<A> {
             Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
             Entry::Vacant(entry) => {
                 let var = Variable::new(name);
-                let id = self.graph.add_node(Node::variable(var));
+                let id = self.graph.add_node(var.into());
                 entry.insert(id);
                 Ok(id)
             }
@@ -137,21 +144,21 @@ impl<A: Field> Graph<A> {
     }
 
     pub fn add(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.add_node(Node::bin_op(add()));
+        let p = self.add_node(Binary::Add.into());
         self.add_edge(lhs, p, ());
         self.add_edge(rhs, p, ());
         p
     }
 
     pub fn mul(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.add_node(Node::bin_op(mul()));
+        let p = self.add_node(Binary::Mul.into());
         self.add_edge(lhs, p, ());
         self.add_edge(rhs, p, ());
         p
     }
 
     pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
-        let n = self.add_node(Node::unray_op(neg()));
+        let n = self.add_node(Unary::Neg.into());
         self.add_edge(arg, n, ());
         n
     }
@@ -217,7 +224,7 @@ impl<A: Field> Graph<A> {
                 }
                 panic!("Variable '{}' is evaluated before set value", v.name)
             }
-            Property::UnaryOp(ref op) => {
+            Property::Unary(ref op) => {
                 if use_cached && value_exists {
                     return;
                 }
@@ -225,7 +232,7 @@ impl<A: Field> Graph<A> {
                 self.eval_value(arg, use_cached);
                 self[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
             }
-            Property::BinOp(ref op) => {
+            Property::Binary(ref op) => {
                 if use_cached && value_exists {
                     return;
                 }
@@ -243,13 +250,13 @@ impl<A: Field> Graph<A> {
         let prop = self[node].prop.clone();
         match prop {
             Property::Variable(_) => {}
-            Property::UnaryOp(ref op) => {
+            Property::Unary(ref op) => {
                 let arg = self.get_arg1(node);
                 let der =
                     op.eval_deriv(self.get_value(arg).unwrap(), self.get_deriv(node).unwrap());
                 self.deriv_recur(arg, der);
             }
-            Property::BinOp(ref op) => {
+            Property::Binary(ref op) => {
                 let (lhs, rhs) = self.get_arg2(node);
                 let (l_der, r_der) = op.eval_deriv(
                     self.get_value(lhs).unwrap(),
