@@ -1,18 +1,17 @@
 //! Calculation graph
 
-use petgraph;
 use petgraph::prelude::*;
 use std::collections::{hash_map::Entry, HashMap};
 
-use super::error::*;
-use super::operators::*;
+use super::error::{Error, Result};
+use super::operator::{Binary, Unary};
 use super::scalar::Field;
 
 /// Node of the calculation graph.
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
@@ -59,7 +58,7 @@ impl<A: Field> From<Binary> for Node<A> {
 }
 
 impl<A: Field> From<Variable> for Node<A> {
-    fn from(var : Variable) -> Self {
+    fn from(var: Variable) -> Self {
         Self {
             value: None,
             deriv: None,
@@ -82,7 +81,7 @@ impl Variable {
 }
 
 /// Calculation graph based on `petgraph::graph::Graph`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Graph<A: Field> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
     name_space: HashMap<String, NodeIndex>,
