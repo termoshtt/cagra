@@ -7,15 +7,15 @@
 //!
 //! let mut g: Graph<f64> = Graph::new();
 //! // x = 1.0
-//! let x = g.variable("x", 1.0);
+//! let x = g.variable("x", 1.0).unwrap();
 //! // y = 2.0
-//! let y = g.variable("y", 2.0);
+//! let y = g.variable("y", 2.0).unwrap();
 //! // tmp = x + y
 //! let tmp = g.add(x, y);
 //! // z = -3.0
-//! let z = g.variable("z", -3.0);
+//! let z = g.variable("z", -3.0).unwrap();
 //! // a = 2.0;
-//! let a = g.variable("a", 2.0);
+//! let a = g.variable("a", 2.0).unwrap();
 //! // az = a * z
 //! let az = g.mul(a, z);
 //! // sum = tmp - az
