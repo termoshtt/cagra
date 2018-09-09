@@ -3,6 +3,7 @@
 use num_traits::*;
 use std::fmt::Debug;
 use std::ops::*;
+use serde::Serialize;
 
 pub use num_complex::Complex32 as c32;
 pub use num_complex::Complex64 as c64;
@@ -18,6 +19,7 @@ pub trait Field:
     + Div<Output = Self>
     + Neg<Output = Self>
     + Debug
+    + Serialize
 {
 }
 
@@ -32,6 +34,7 @@ impl<T> Field for T where
         + Div<Output = T>
         + Neg<Output = T>
         + Debug
+        + Serialize
 {}
 
 pub trait LeftAction<RHS, Output>:

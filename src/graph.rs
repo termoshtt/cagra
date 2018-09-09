@@ -2,6 +2,7 @@
 
 use petgraph::prelude::*;
 use std::collections::{hash_map::Entry, HashMap};
+use std::io;
 
 use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
@@ -258,5 +259,13 @@ impl<A: Field> Graph<A> {
     /// Evaluate derivative recursively.
     pub fn eval_deriv(&mut self, node: NodeIndex) {
         self.deriv_recur(node, A::one())
+    }
+
+    pub fn to_json(&self, writer: impl io::Write) -> Result<()> {
+        serde_json::to_writer(writer, self).map_err(|error| Error::JSONSerializeFailed { error })
+    }
+
+    pub fn to_json_str(&self) -> Result<String> {
+        serde_json::to_string(self).map_err(|error| Error::JSONSerializeFailed { error })
     }
 }
