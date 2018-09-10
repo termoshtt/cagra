@@ -13,4 +13,8 @@ pub enum Error {
     /// Name is not defined
     #[fail(display = "Variable name is not defined (name = {})", name)]
     UndefinedName { name: String },
+
+    /// Fail to serialize to JSON
+    #[fail(display = "JSON serialization failed: {:?})", error)]
+    JSONSerializeFailed { error: serde_json::error::Error },
 }
