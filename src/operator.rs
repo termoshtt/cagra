@@ -27,6 +27,7 @@ impl Unary {
 pub enum Binary {
     Add,
     Mul,
+    Div,
 }
 
 impl Binary {
@@ -35,6 +36,7 @@ impl Binary {
         match self {
             Binary::Add => lhs + rhs,
             Binary::Mul => lhs * rhs,
+            Binary::Div => lhs / rhs,
         }
     }
     /// Evaluate the derivative of the operator multiplied by the received
@@ -43,6 +45,7 @@ impl Binary {
         match self {
             Binary::Add => (deriv, deriv),
             Binary::Mul => (rhs * deriv, lhs * deriv),
+            Binary::Div => (deriv / rhs, -lhs * deriv / (rhs * rhs)),
         }
     }
 }
