@@ -1,9 +1,9 @@
 //! Scalar trait, which generalizes complex and real number.
 
 use num_traits::*;
+use serde::Serialize;
 use std::fmt::Debug;
 use std::ops::*;
-use serde::Serialize;
 
 pub use num_complex::Complex32 as c32;
 pub use num_complex::Complex64 as c64;

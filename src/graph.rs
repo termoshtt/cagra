@@ -22,7 +22,7 @@ pub struct Node<A: Field> {
 /// Extra propaties of the `Node` accoding to the node type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum Property {
-    Variable(Variable),
+    Variable,
     Unary(Unary),
     Binary(Binary),
 }
@@ -31,9 +31,17 @@ impl<A: Field> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
         match self.prop {
-            Property::Variable(_) => true,
+            Property::Variable => true,
             Property::Unary(_) => false,
             Property::Binary(_) => false,
+        }
+    }
+
+    fn variable() -> Self {
+        Self {
+            value: None,
+            deriv: None,
+            prop: Property::Variable,
         }
     }
 }
@@ -54,29 +62,6 @@ impl<A: Field> From<Binary> for Node<A> {
             value: None,
             deriv: None,
             prop: Property::Binary(op),
-        }
-    }
-}
-
-impl<A: Field> From<Variable> for Node<A> {
-    fn from(var: Variable) -> Self {
-        Self {
-            value: None,
-            deriv: None,
-            prop: Property::Variable(var),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Variable {
-    name: String,
-}
-
-impl Variable {
-    fn new(name: &str) -> Self {
-        Variable {
-            name: name.to_string(),
         }
     }
 }
@@ -103,8 +88,7 @@ impl<A: Field> Graph<A> {
         match self.name_space.entry(name.into()) {
             Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
             Entry::Vacant(entry) => {
-                let var = Variable::new(name);
-                let id = self.graph.add_node(var.into());
+                let id = self.graph.add_node(Node::variable());
                 entry.insert(id);
                 Ok(id)
             }
@@ -205,11 +189,10 @@ impl<A: Field> Graph<A> {
         let prop = self.graph[node].prop.clone();
         let value_exists = self.graph[node].value.is_some();
         match prop {
-            Property::Variable(ref v) => {
+            Property::Variable => {
                 if value_exists {
                     return;
                 }
-                panic!("Variable '{}' is evaluated before set value", v.name)
             }
             Property::Unary(ref op) => {
                 if use_cached && value_exists {
@@ -236,7 +219,7 @@ impl<A: Field> Graph<A> {
         self.graph[node].deriv = Some(der);
         let prop = self.graph[node].prop.clone();
         match prop {
-            Property::Variable(_) => {}
+            Property::Variable => {}
             Property::Unary(ref op) => {
                 let arg = self.get_arg1(node);
                 let der =
