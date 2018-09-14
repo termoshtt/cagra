@@ -1,4 +1,17 @@
-//! # Examples
+//! cagra
+//! =====
+//!
+//! Tiny CAlculation GRAph library
+//!
+//! Features
+//! --------
+//!
+//! - No frontend and No backend.
+//! - Adjacency list graph based on [petgraph](https://github.com/bluss/petgraph)
+//! - Serialization with [serde](https://github.com/serde-rs/serde)
+//!
+//! Examples
+//! --------
 //!
 //! Create a graph for `(x + y) - 2*z`
 //!
