@@ -12,7 +12,7 @@ use super::scalar::Field;
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
@@ -20,7 +20,7 @@ pub struct Node<A: Field> {
 }
 
 /// Extra propaties of the `Node` accoding to the node type.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 enum Property {
     Constant,
     Variable,
@@ -196,11 +196,8 @@ impl<A: Field> Graph<A> {
     }
 
     /// Evaluate the value of the node recusively.
-    ///
-    /// * `use_cached` - Use the value if already calculated.
-    pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) {
-        // FIXME This code traces the graph twice, but it may be able to done by once.
-        let prop = self.graph[node].prop.clone();
+    pub fn eval_value(&mut self, node: NodeIndex) {
+        let prop = self.graph[node].prop;
         let value_exists = self.graph[node].value.is_some();
         match prop {
             Property::Variable | Property::Constant => {
@@ -209,20 +206,20 @@ impl<A: Field> Graph<A> {
                 }
             }
             Property::Unary(ref op) => {
-                if use_cached && value_exists {
+                if value_exists {
                     return;
                 }
                 let arg = self.get_arg1(node);
-                self.eval_value(arg, use_cached);
+                self.eval_value(arg);
                 self.graph[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
             }
             Property::Binary(ref op) => {
-                if use_cached && value_exists {
+                if value_exists {
                     return;
                 }
                 let (lhs, rhs) = self.get_arg2(node);
-                self.eval_value(rhs, use_cached);
-                self.eval_value(lhs, use_cached);
+                self.eval_value(rhs);
+                self.eval_value(lhs);
                 let res = op.eval_value(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
                 self.graph[node].value = Some(res);
             }
@@ -231,7 +228,7 @@ impl<A: Field> Graph<A> {
 
     fn deriv_recur(&mut self, node: NodeIndex, der: A) {
         self.graph[node].deriv = Some(der);
-        let prop = self.graph[node].prop.clone();
+        let prop = self.graph[node].prop;
         match prop {
             Property::Variable | Property::Constant => {}
             Property::Unary(ref op) => {
