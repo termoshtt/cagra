@@ -196,34 +196,29 @@ impl<A: Field> Graph<A> {
     }
 
     /// Evaluate the value of the node recusively.
-    pub fn eval_value(&mut self, node: NodeIndex) {
-        let prop = self.graph[node].prop;
-        let value_exists = self.graph[node].value.is_some();
-        match prop {
-            Property::Variable | Property::Constant => {
-                if value_exists {
-                    return;
-                }
-            }
-            Property::Unary(ref op) => {
-                if value_exists {
-                    return;
-                }
+    pub fn eval_value(&mut self, node: NodeIndex) -> Result<A> {
+        let mut n = self.graph[node];
+        match n.prop {
+            Property::Variable => n.value.ok_or(Error::Uninitialized {
+                index: node.index(),
+            }),
+            Property::Constant => Ok(n.value.expect("Constant is not initialized")),
+            Property::Unary(ref op) => Ok(n.value.unwrap_or({
                 let arg = self.get_arg1(node);
-                self.eval_value(arg);
-                self.graph[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
-            }
-            Property::Binary(ref op) => {
-                if value_exists {
-                    return;
-                }
+                let val1 = self.eval_value(arg)?;
+                let value = op.eval_value(val1);
+                n.value = Some(value); // cache
+                value
+            })),
+            Property::Binary(ref op) => Ok(n.value.unwrap_or({
                 let (lhs, rhs) = self.get_arg2(node);
-                self.eval_value(rhs);
-                self.eval_value(lhs);
-                let res = op.eval_value(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
-                self.graph[node].value = Some(res);
-            }
-        };
+                let lv = self.eval_value(lhs)?;
+                let rv = self.eval_value(rhs)?;
+                let value = op.eval_value(lv, rv);
+                n.value = Some(value); // cache
+                value
+            })),
+        }
     }
 
     fn deriv_recur(&mut self, node: NodeIndex, der: A) {

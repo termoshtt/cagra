@@ -2,6 +2,13 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Fail, Debug)]
 pub enum Error {
+    /// value node is not initialized
+    #[fail(
+        display = "Value node is not initialized (Index = {})",
+        index
+    )]
+    Uninitialized { index: usize },
+
     /// node type mismatch
     #[fail(display = "Node type mismatch (Index = {})", index)]
     NodeTypeError { index: usize },
