@@ -22,6 +22,7 @@ pub struct Node<A: Field> {
 /// Extra propaties of the `Node` accoding to the node type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum Property {
+    Constant,
     Variable,
     Unary(Unary),
     Binary(Binary),
@@ -31,6 +32,7 @@ impl<A: Field> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
         match self.prop {
+            Property::Constant => false,
             Property::Variable => true,
             Property::Unary(_) => false,
             Property::Binary(_) => false,
@@ -42,6 +44,14 @@ impl<A: Field> Node<A> {
             value: None,
             deriv: None,
             prop: Property::Variable,
+        }
+    }
+
+    fn constant(a: A) -> Self {
+        Self {
+            value: Some(a),
+            deriv: None,
+            prop: Property::Constant,
         }
     }
 }
@@ -80,6 +90,10 @@ impl<A: Field> Graph<A> {
             graph: petgraph::graph::Graph::new(),
             name_space: HashMap::new(),
         }
+    }
+
+    pub fn constant(&mut self, value: A) -> NodeIndex {
+        self.graph.add_node(Node::constant(value))
     }
 
     /// Create new empty variable
@@ -189,7 +203,7 @@ impl<A: Field> Graph<A> {
         let prop = self.graph[node].prop.clone();
         let value_exists = self.graph[node].value.is_some();
         match prop {
-            Property::Variable => {
+            Property::Variable | Property::Constant => {
                 if value_exists {
                     return;
                 }
@@ -219,7 +233,7 @@ impl<A: Field> Graph<A> {
         self.graph[node].deriv = Some(der);
         let prop = self.graph[node].prop.clone();
         match prop {
-            Property::Variable => {}
+            Property::Variable | Property::Constant => {}
             Property::Unary(ref op) => {
                 let arg = self.get_arg1(node);
                 let der =

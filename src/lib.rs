@@ -28,7 +28,7 @@
 //! // z = -3.0
 //! let z = g.variable("z", -3.0).unwrap();
 //! // a = 2.0;
-//! let a = g.variable("a", 2.0).unwrap();
+//! let a = g.constant(2.0);
 //! // az = a * z
 //! let az = g.mul(a, z);
 //! // sum = tmp - az
