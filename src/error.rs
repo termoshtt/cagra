@@ -7,7 +7,14 @@ pub enum Error {
         display = "Value node is not initialized (Index = {})",
         index
     )]
-    Uninitialized { index: usize },
+    ValueUninitialized { index: usize },
+
+    /// derivative is not initialized
+    #[fail(
+        display = "Derivative is not initialized (Index = {})",
+        index
+    )]
+    DerivUninitialized { index: usize },
 
     /// node type mismatch
     #[fail(display = "Node type mismatch (Index = {})", index)]

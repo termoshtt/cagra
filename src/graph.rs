@@ -12,11 +12,11 @@ use super::scalar::Field;
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
-    prop: Property,
+    property: Property,
 }
 
 /// Extra propaties of the `Node` accoding to the node type.
@@ -31,7 +31,7 @@ enum Property {
 impl<A: Field> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
-        match self.prop {
+        match self.property {
             Property::Constant => false,
             Property::Variable => true,
             Property::Unary(_) => false,
@@ -43,7 +43,7 @@ impl<A: Field> Node<A> {
         Self {
             value: None,
             deriv: None,
-            prop: Property::Variable,
+            property: Property::Variable,
         }
     }
 
@@ -51,7 +51,7 @@ impl<A: Field> Node<A> {
         Self {
             value: Some(a),
             deriv: None,
-            prop: Property::Constant,
+            property: Property::Constant,
         }
     }
 }
@@ -61,7 +61,7 @@ impl<A: Field> From<Unary> for Node<A> {
         Self {
             value: None,
             deriv: None,
-            prop: Property::Unary(op),
+            property: Property::Unary(op),
         }
     }
 }
@@ -71,7 +71,7 @@ impl<A: Field> From<Binary> for Node<A> {
         Self {
             value: None,
             deriv: None,
-            prop: Property::Binary(op),
+            property: Property::Binary(op),
         }
     }
 }
@@ -199,55 +199,67 @@ impl<A: Field> Graph<A> {
 
     /// Evaluate the value of the node recusively.
     pub fn eval_value(&mut self, node: NodeIndex) -> Result<A> {
-        let mut n = self.graph[node];
-        match n.prop {
-            Property::Variable => n.value.ok_or(Error::Uninitialized {
-                index: node.index(),
-            }),
-            Property::Constant => Ok(n.value.expect("Constant is not initialized")),
-            Property::Unary(ref op) => Ok(n.value.unwrap_or({
+        let prop = self[node].property;
+        match prop {
+            Property::Variable => self.get_value(node),
+            Property::Constant => Ok(self
+                .get_value(node)
+                .expect("Constant node is not initialized")),
+            Property::Unary(ref op) => Ok(self.get_value(node).unwrap_or({
                 let arg = self.get_arg1(node);
                 let val1 = self.eval_value(arg)?;
                 let value = op.eval_value(val1);
-                n.value = Some(value); // cache
+                self[node].value = Some(value); // cache
                 value
             })),
-            Property::Binary(ref op) => Ok(n.value.unwrap_or({
+            Property::Binary(ref op) => Ok(self.get_value(node).unwrap_or({
                 let (lhs, rhs) = self.get_arg2(node);
                 let lv = self.eval_value(lhs)?;
                 let rv = self.eval_value(rhs)?;
                 let value = op.eval_value(lv, rv);
-                n.value = Some(value); // cache
+                self[node].value = Some(value); // cache
                 value
             })),
         }
     }
 
-    fn deriv_recur(&mut self, node: NodeIndex, der: A) {
-        self.graph[node].deriv = Some(der);
-        let prop = self.graph[node].prop;
-        match prop {
+    pub fn get_value(&self, node: NodeIndex) -> Result<A> {
+        self[node].value.ok_or(Error::ValueUninitialized {
+            index: node.index(),
+        })
+    }
+
+    pub fn get_deriv(&self, node: NodeIndex) -> Result<A> {
+        self[node].deriv.ok_or(Error::DerivUninitialized {
+            index: node.index(),
+        })
+    }
+
+    fn deriv_recur(&mut self, node: NodeIndex, der: A) -> Result<()> {
+        self[node].deriv = match self[node].deriv {
+            Some(der_last) => Some(der_last + der),
+            None => Some(der),
+        };
+        let property = self[node].property;
+        match property {
             Property::Variable | Property::Constant => {}
             Property::Unary(ref op) => {
                 let arg = self.get_arg1(node);
-                let der = op.eval_deriv(self[arg].value.unwrap(), self[node].deriv.unwrap());
-                self.deriv_recur(arg, der);
+                let der = op.eval_deriv(self.get_value(arg)?, der);
+                self.deriv_recur(arg, der)?;
             }
             Property::Binary(ref op) => {
                 let (lhs, rhs) = self.get_arg2(node);
-                let (l_der, r_der) = op.eval_deriv(
-                    self[lhs].value.unwrap(),
-                    self[rhs].value.unwrap(),
-                    self[node].deriv.unwrap(),
-                );
-                self.deriv_recur(lhs, l_der);
-                self.deriv_recur(rhs, r_der);
+                let (l_der, r_der) = op.eval_deriv(self.get_value(lhs)?, self.get_value(rhs)?, der);
+                self.deriv_recur(lhs, l_der)?;
+                self.deriv_recur(rhs, r_der)?;
             }
         };
+        Ok(())
     }
 
     /// Evaluate derivative recursively.
-    pub fn eval_deriv(&mut self, node: NodeIndex) {
+    pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
         self.deriv_recur(node, A::one())
     }
 
