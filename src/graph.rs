@@ -80,7 +80,39 @@ impl<A: Field> From<Binary> for Node<A> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph<A: Field> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
-    name_space: HashMap<String, NodeIndex>,
+    namespace: HashMap<String, NodeIndex>,
+}
+
+// Panic if the index does not exists
+impl<A: Field> ::std::ops::Index<NodeIndex> for Graph<A> {
+    type Output = Node<A>;
+    fn index(&self, index: NodeIndex) -> &Node<A> {
+        &self.graph[index]
+    }
+}
+
+// Panic if the index does not exists
+impl<A: Field> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
+    fn index_mut(&mut self, index: NodeIndex) -> &mut Node<A> {
+        &mut self.graph[index]
+    }
+}
+
+// Panic if the name is not found
+impl<A: Field> ::std::ops::Index<&str> for Graph<A> {
+    type Output = Node<A>;
+    fn index(&self, name: &str) -> &Node<A> {
+        let index = self.namespace[name];
+        &self.graph[index]
+    }
+}
+
+// Panic if the name is not found
+impl<A: Field> ::std::ops::IndexMut<&str> for Graph<A> {
+    fn index_mut(&mut self, name: &str) -> &mut Node<A> {
+        let index = self.namespace[name];
+        &mut self.graph[index]
+    }
 }
 
 impl<A: Field> Graph<A> {
@@ -88,7 +120,7 @@ impl<A: Field> Graph<A> {
     pub fn new() -> Self {
         Self {
             graph: petgraph::graph::Graph::new(),
-            name_space: HashMap::new(),
+            namespace: HashMap::new(),
         }
     }
 
@@ -99,7 +131,7 @@ impl<A: Field> Graph<A> {
     /// Create new empty variable
     pub fn empty_variable(&mut self, name: &str) -> Result<NodeIndex> {
         // check name duplication
-        match self.name_space.entry(name.into()) {
+        match self.namespace.entry(name.into()) {
             Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
             Entry::Vacant(entry) => {
                 let id = self.graph.add_node(Node::variable());
@@ -153,24 +185,6 @@ impl<A: Field> Graph<A> {
         self.add(lhs, m_rhs)
     }
 
-    pub fn get_index(&self, name: &str) -> Result<NodeIndex> {
-        self.name_space
-            .get(name)
-            .cloned()
-            .ok_or(Error::UndefinedName { name: name.into() })
-    }
-
-    pub fn set_index(&mut self, name: &str, id: NodeIndex) -> Result<()> {
-        // check name duplication
-        match self.name_space.entry(name.into()) {
-            Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
-            Entry::Vacant(entry) => {
-                entry.insert(id);
-                Ok(())
-            }
-        }
-    }
-
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
         let mut iter = self.graph.neighbors_directed(op, Direction::Incoming);
         iter.next().unwrap()
@@ -181,18 +195,6 @@ impl<A: Field> Graph<A> {
         let rhs = iter.next().unwrap();
         let lhs = iter.next().unwrap();
         (lhs, rhs)
-    }
-
-    /// Get the value of the node. If the value has not been caluclated,
-    /// returns `None`
-    pub fn get_value(&self, node: NodeIndex) -> Option<A> {
-        self.graph[node].value
-    }
-
-    /// Get the value of the node. If the value has not been caluclated,
-    /// returns `None`
-    pub fn get_deriv(&self, node: NodeIndex) -> Option<A> {
-        self.graph[node].deriv
     }
 
     /// Evaluate the value of the node recusively.
@@ -228,16 +230,15 @@ impl<A: Field> Graph<A> {
             Property::Variable | Property::Constant => {}
             Property::Unary(ref op) => {
                 let arg = self.get_arg1(node);
-                let der =
-                    op.eval_deriv(self.get_value(arg).unwrap(), self.get_deriv(node).unwrap());
+                let der = op.eval_deriv(self[arg].value.unwrap(), self[node].deriv.unwrap());
                 self.deriv_recur(arg, der);
             }
             Property::Binary(ref op) => {
                 let (lhs, rhs) = self.get_arg2(node);
                 let (l_der, r_der) = op.eval_deriv(
-                    self.get_value(lhs).unwrap(),
-                    self.get_value(rhs).unwrap(),
-                    self.get_deriv(node).unwrap(),
+                    self[lhs].value.unwrap(),
+                    self[rhs].value.unwrap(),
+                    self[node].deriv.unwrap(),
                 );
                 self.deriv_recur(lhs, l_der);
                 self.deriv_recur(rhs, r_der);
