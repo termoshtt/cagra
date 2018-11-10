@@ -1,6 +1,7 @@
 //! Value and operators in calculation graph
 
 use super::scalar::Field;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Unary {

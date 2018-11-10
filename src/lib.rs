@@ -46,16 +46,6 @@
 //! assert!((dz + 2.0).abs() < 1e-7);
 //! ```
 
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-#[macro_use]
-extern crate failure;
-extern crate num_complex;
-extern crate num_traits;
-extern crate petgraph;
-
 pub mod error;
 pub mod graph;
 pub mod operator;

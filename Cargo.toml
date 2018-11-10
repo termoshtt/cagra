@@ -1,9 +1,8 @@
-cargo-features = ["edition"]
-
 [package]
 name = "cagra"
 version = "0.1.0"
 authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
+edition = '2018'
 
 description   = "Calculation Graph Library"
 documentation = "https://docs.rs/cagra"
@@ -12,8 +11,6 @@ keywords      = ["calculation-graph"]
 license       = "MIT"
 readme        = "README.md"
 categories    = ["algorithms", "science"]
-
-edition = '2018'
 
 [dependencies]
 failure = "0.1"

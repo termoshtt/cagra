@@ -1,6 +1,7 @@
 //! Calculation graph
 
 use petgraph::prelude::*;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::{hash_map::Entry, HashMap};
 use std::io;
 
