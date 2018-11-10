@@ -16,11 +16,11 @@ use super::scalar::Field;
 pub struct Node<A: Field> {
     value: Option<A>,
     deriv: Option<A>,
-    prop: Property,
+    property: Property,
 }
 
 /// Extra propaties of the `Node` accoding to the node type.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 enum Property {
     Constant,
     Variable,
@@ -31,7 +31,7 @@ enum Property {
 impl<A: Field> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
-        match self.prop {
+        match self.property {
             Property::Constant => false,
             Property::Variable => true,
             Property::Unary(_) => false,
@@ -43,7 +43,7 @@ impl<A: Field> Node<A> {
         Self {
             value: None,
             deriv: None,
-            prop: Property::Variable,
+            property: Property::Variable,
         }
     }
 
@@ -51,7 +51,7 @@ impl<A: Field> Node<A> {
         Self {
             value: Some(a),
             deriv: None,
-            prop: Property::Constant,
+            property: Property::Constant,
         }
     }
 }
@@ -61,7 +61,7 @@ impl<A: Field> From<Unary> for Node<A> {
         Self {
             value: None,
             deriv: None,
-            prop: Property::Unary(op),
+            property: Property::Unary(op),
         }
     }
 }
@@ -71,7 +71,7 @@ impl<A: Field> From<Binary> for Node<A> {
         Self {
             value: None,
             deriv: None,
-            prop: Property::Binary(op),
+            property: Property::Binary(op),
         }
     }
 }
@@ -80,7 +80,39 @@ impl<A: Field> From<Binary> for Node<A> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph<A: Field> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
-    name_space: HashMap<String, NodeIndex>,
+    namespace: HashMap<String, NodeIndex>,
+}
+
+// Panic if the index does not exists
+impl<A: Field> ::std::ops::Index<NodeIndex> for Graph<A> {
+    type Output = Node<A>;
+    fn index(&self, index: NodeIndex) -> &Node<A> {
+        &self.graph[index]
+    }
+}
+
+// Panic if the index does not exists
+impl<A: Field> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
+    fn index_mut(&mut self, index: NodeIndex) -> &mut Node<A> {
+        &mut self.graph[index]
+    }
+}
+
+// Panic if the name is not found
+impl<A: Field> ::std::ops::Index<&str> for Graph<A> {
+    type Output = Node<A>;
+    fn index(&self, name: &str) -> &Node<A> {
+        let index = self.namespace[name];
+        &self.graph[index]
+    }
+}
+
+// Panic if the name is not found
+impl<A: Field> ::std::ops::IndexMut<&str> for Graph<A> {
+    fn index_mut(&mut self, name: &str) -> &mut Node<A> {
+        let index = self.namespace[name];
+        &mut self.graph[index]
+    }
 }
 
 impl<A: Field> Graph<A> {
@@ -88,7 +120,7 @@ impl<A: Field> Graph<A> {
     pub fn new() -> Self {
         Self {
             graph: petgraph::graph::Graph::new(),
-            name_space: HashMap::new(),
+            namespace: HashMap::new(),
         }
     }
 
@@ -99,7 +131,7 @@ impl<A: Field> Graph<A> {
     /// Create new empty variable
     pub fn empty_variable(&mut self, name: &str) -> Result<NodeIndex> {
         // check name duplication
-        match self.name_space.entry(name.into()) {
+        match self.namespace.entry(name.into()) {
             Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
             Entry::Vacant(entry) => {
                 let id = self.graph.add_node(Node::variable());
@@ -153,24 +185,6 @@ impl<A: Field> Graph<A> {
         self.add(lhs, m_rhs)
     }
 
-    pub fn get_index(&self, name: &str) -> Result<NodeIndex> {
-        self.name_space
-            .get(name)
-            .cloned()
-            .ok_or(Error::UndefinedName { name: name.into() })
-    }
-
-    pub fn set_index(&mut self, name: &str, id: NodeIndex) -> Result<()> {
-        // check name duplication
-        match self.name_space.entry(name.into()) {
-            Entry::Occupied(_) => Err(Error::DuplicatedName { name: name.into() }),
-            Entry::Vacant(entry) => {
-                entry.insert(id);
-                Ok(())
-            }
-        }
-    }
-
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
         let mut iter = self.graph.neighbors_directed(op, Direction::Incoming);
         iter.next().unwrap()
@@ -183,78 +197,69 @@ impl<A: Field> Graph<A> {
         (lhs, rhs)
     }
 
-    /// Get the value of the node. If the value has not been caluclated,
-    /// returns `None`
-    pub fn get_value(&self, node: NodeIndex) -> Option<A> {
-        self.graph[node].value
-    }
-
-    /// Get the value of the node. If the value has not been caluclated,
-    /// returns `None`
-    pub fn get_deriv(&self, node: NodeIndex) -> Option<A> {
-        self.graph[node].deriv
-    }
-
     /// Evaluate the value of the node recusively.
-    ///
-    /// * `use_cached` - Use the value if already calculated.
-    pub fn eval_value(&mut self, node: NodeIndex, use_cached: bool) {
-        // FIXME This code traces the graph twice, but it may be able to done by once.
-        let prop = self.graph[node].prop.clone();
-        let value_exists = self.graph[node].value.is_some();
+    pub fn eval_value(&mut self, node: NodeIndex) -> Result<A> {
+        let prop = self[node].property;
         match prop {
-            Property::Variable | Property::Constant => {
-                if value_exists {
-                    return;
-                }
-            }
-            Property::Unary(ref op) => {
-                if use_cached && value_exists {
-                    return;
-                }
+            Property::Variable => self.get_value(node),
+            Property::Constant => Ok(self
+                .get_value(node)
+                .expect("Constant node is not initialized")),
+            Property::Unary(ref op) => Ok(self.get_value(node).unwrap_or({
                 let arg = self.get_arg1(node);
-                self.eval_value(arg, use_cached);
-                self.graph[node].value = Some(op.eval_value(self.get_value(arg).unwrap()));
-            }
-            Property::Binary(ref op) => {
-                if use_cached && value_exists {
-                    return;
-                }
+                let val1 = self.eval_value(arg)?;
+                let value = op.eval_value(val1);
+                self[node].value = Some(value); // cache
+                value
+            })),
+            Property::Binary(ref op) => Ok(self.get_value(node).unwrap_or({
                 let (lhs, rhs) = self.get_arg2(node);
-                self.eval_value(rhs, use_cached);
-                self.eval_value(lhs, use_cached);
-                let res = op.eval_value(self.get_value(lhs).unwrap(), self.get_value(rhs).unwrap());
-                self.graph[node].value = Some(res);
-            }
-        };
+                let lv = self.eval_value(lhs)?;
+                let rv = self.eval_value(rhs)?;
+                let value = op.eval_value(lv, rv);
+                self[node].value = Some(value); // cache
+                value
+            })),
+        }
     }
 
-    fn deriv_recur(&mut self, node: NodeIndex, der: A) {
-        self.graph[node].deriv = Some(der);
-        let prop = self.graph[node].prop.clone();
-        match prop {
+    pub fn get_value(&self, node: NodeIndex) -> Result<A> {
+        self[node].value.ok_or(Error::ValueUninitialized {
+            index: node.index(),
+        })
+    }
+
+    pub fn get_deriv(&self, node: NodeIndex) -> Result<A> {
+        self[node].deriv.ok_or(Error::DerivUninitialized {
+            index: node.index(),
+        })
+    }
+
+    fn deriv_recur(&mut self, node: NodeIndex, der: A) -> Result<()> {
+        self[node].deriv = match self[node].deriv {
+            Some(der_last) => Some(der_last + der),
+            None => Some(der),
+        };
+        let property = self[node].property;
+        match property {
             Property::Variable | Property::Constant => {}
             Property::Unary(ref op) => {
                 let arg = self.get_arg1(node);
-                let der =
-                    op.eval_deriv(self.get_value(arg).unwrap(), self.get_deriv(node).unwrap());
-                self.deriv_recur(arg, der);
+                let der = op.eval_deriv(self.get_value(arg)?, der);
+                self.deriv_recur(arg, der)?;
             }
             Property::Binary(ref op) => {
                 let (lhs, rhs) = self.get_arg2(node);
-                let (l_der, r_der) = op.eval_deriv(
-                    self.get_value(lhs).unwrap(),
-                    self.get_value(rhs).unwrap(),
-                    self.get_deriv(node).unwrap(),
-                );
-                self.deriv_recur(lhs, l_der);
-                self.deriv_recur(rhs, r_der);
+                let (l_der, r_der) = op.eval_deriv(self.get_value(lhs)?, self.get_value(rhs)?, der);
+                self.deriv_recur(lhs, l_der)?;
+                self.deriv_recur(rhs, r_der)?;
             }
         };
+        Ok(())
     }
 
     /// Evaluate derivative recursively.
-    pub fn eval_deriv(&mut self, node: NodeIndex) {
+    pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
         self.deriv_recur(node, A::one())
     }
 

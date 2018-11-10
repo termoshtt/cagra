@@ -34,8 +34,7 @@
 //! // sum = tmp - az
 //! let sum = g.sub(tmp, az);
 //!
-//! g.eval_value(sum, false);
-//! let result = g.get_value(sum).unwrap();
+//! let result = g.eval_value(sum).unwrap();
 //! assert!((result - 9.0).abs() < 1e-7);
 //!
 //! g.eval_deriv(sum);
