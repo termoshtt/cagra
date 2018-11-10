@@ -13,37 +13,29 @@
 //! Examples
 //! --------
 //!
-//! Create a graph for `(x + y) - 2*z`
+//! Create a graph for `z = (x + y) - 2*x*y`
 //!
 //! ```
+//! # use approx::abs_diff_eq;
 //! use cagra::graph::*;
 //!
 //! let mut g: Graph<f64> = Graph::new();
-//! // x = 1.0
 //! let x = g.variable("x", 1.0).unwrap();
-//! // y = 2.0
-//! let y = g.variable("y", 2.0).unwrap();
-//! // tmp = x + y
-//! let tmp = g.add(x, y);
-//! // z = -3.0
-//! let z = g.variable("z", -3.0).unwrap();
-//! // a = 2.0;
-//! let a = g.constant(2.0);
-//! // az = a * z
-//! let az = g.mul(a, z);
-//! // sum = tmp - az
-//! let sum = g.sub(tmp, az);
+//! let y = g.variable("y", 3.0).unwrap();
+//! let x_y = g.add(x, y);
+//! let xy  = g.mul(x, y);
+//! let a   = g.constant(2.0);
+//! let axy = g.mul(a, xy);
+//! let sum = g.sub(x_y, axy);
 //!
 //! let result = g.eval_value(sum).unwrap();
-//! assert!((result - 9.0).abs() < 1e-7);
+//! abs_diff_eq!(result, -2.0);
 //!
 //! g.eval_deriv(sum);
 //! let dx = g.get_deriv(x).unwrap();
 //! let dy = g.get_deriv(y).unwrap();
-//! let dz = g.get_deriv(z).unwrap();
-//! assert!((dx - 1.0).abs() < 1e-7);
-//! assert!((dy - 1.0).abs() < 1e-7);
-//! assert!((dz + 2.0).abs() < 1e-7);
+//! abs_diff_eq!(dx, -5.0);
+//! abs_diff_eq!(dy, -1.0);
 //! ```
 
 pub mod error;
