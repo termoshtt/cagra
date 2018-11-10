@@ -1,3 +1,4 @@
+use failure::Fail;
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Fail, Debug)]
