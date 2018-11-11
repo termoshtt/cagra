@@ -12,6 +12,9 @@ pub enum Unary {
     Sin,
     Cos,
     Tan,
+    Sinh,
+    Cosh,
+    Tanh,
 }
 
 impl Unary {
@@ -25,6 +28,9 @@ impl Unary {
             Unary::Sin => arg.sin(),
             Unary::Cos => arg.cos(),
             Unary::Tan => arg.tan(),
+            Unary::Sinh => arg.sinh(),
+            Unary::Cosh => arg.cosh(),
+            Unary::Tanh => arg.tanh(),
         }
     }
     /// Evaluate the derivative of the operator multiplied by the received
@@ -38,6 +44,9 @@ impl Unary {
             Unary::Sin => arg.cos() * deriv,
             Unary::Cos => -arg.sin() * deriv,
             Unary::Tan => -deriv / (arg.cos() * arg.cos()),
+            Unary::Sinh => arg.cosh() * deriv,
+            Unary::Cosh => arg.sinh() * deriv,
+            Unary::Tanh => deriv / (arg.cosh() * arg.cosh()),
         }
     }
 }
