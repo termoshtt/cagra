@@ -137,9 +137,11 @@ impl<A: Scalar> Graph<A> {
     def_binary!(add, Add);
     def_binary!(mul, Mul);
     def_binary!(div, Div);
+    def_binary!(pow, Pow);
     def_unary!(neg, Neg);
     def_unary!(square, Square);
     def_unary!(exp, Exp);
+    def_unary!(ln, Ln);
     def_unary!(sin, Sin);
     def_unary!(cos, Cos);
     def_unary!(tan, Tan);
