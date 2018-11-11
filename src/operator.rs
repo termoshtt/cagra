@@ -44,6 +44,7 @@ pub enum Binary {
     Add,
     Mul,
     Div,
+    Pow,
 }
 
 impl Binary {
@@ -53,6 +54,7 @@ impl Binary {
             Binary::Add => lhs + rhs,
             Binary::Mul => lhs * rhs,
             Binary::Div => lhs / rhs,
+            Binary::Pow => lhs.pow(rhs),
         }
     }
     /// Evaluate the derivative of the operator multiplied by the received
@@ -62,6 +64,10 @@ impl Binary {
             Binary::Add => (deriv, deriv),
             Binary::Mul => (rhs * deriv, lhs * deriv),
             Binary::Div => (deriv / rhs, -lhs * deriv / (rhs * rhs)),
+            Binary::Pow => (
+                rhs * lhs.pow(rhs - A::from_f64(1.0).unwrap()),
+                rhs.ln() * lhs.pow(rhs),
+            ),
         }
     }
 }
