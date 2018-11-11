@@ -41,4 +41,3 @@
 pub mod error;
 pub mod graph;
 pub mod operator;
-pub mod scalar;

@@ -7,14 +7,14 @@ use std::io;
 
 use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
-use super::scalar::Field;
+use cauchy::Scalar;
 
 /// Node of the calculation graph.
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Node<A: Field> {
+pub struct Node<A> {
     value: Option<A>,
     deriv: Option<A>,
     property: Property,
@@ -29,7 +29,7 @@ enum Property {
     Binary(Binary),
 }
 
-impl<A: Field> Node<A> {
+impl<A> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
         match self.property {
@@ -57,7 +57,7 @@ impl<A: Field> Node<A> {
     }
 }
 
-impl<A: Field> From<Unary> for Node<A> {
+impl<A> From<Unary> for Node<A> {
     fn from(op: Unary) -> Self {
         Self {
             value: None,
@@ -67,7 +67,7 @@ impl<A: Field> From<Unary> for Node<A> {
     }
 }
 
-impl<A: Field> From<Binary> for Node<A> {
+impl<A> From<Binary> for Node<A> {
     fn from(op: Binary) -> Self {
         Self {
             value: None,
@@ -79,13 +79,13 @@ impl<A: Field> From<Binary> for Node<A> {
 
 /// Calculation graph based on `petgraph::graph::Graph`
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Graph<A: Field> {
+pub struct Graph<A> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
     namespace: HashMap<String, NodeIndex>,
 }
 
 // Panic if the index does not exists
-impl<A: Field> ::std::ops::Index<NodeIndex> for Graph<A> {
+impl<A> ::std::ops::Index<NodeIndex> for Graph<A> {
     type Output = Node<A>;
     fn index(&self, index: NodeIndex) -> &Node<A> {
         &self.graph[index]
@@ -93,14 +93,14 @@ impl<A: Field> ::std::ops::Index<NodeIndex> for Graph<A> {
 }
 
 // Panic if the index does not exists
-impl<A: Field> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
+impl<A> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
     fn index_mut(&mut self, index: NodeIndex) -> &mut Node<A> {
         &mut self.graph[index]
     }
 }
 
 // Panic if the name is not found
-impl<A: Field> ::std::ops::Index<&str> for Graph<A> {
+impl<A> ::std::ops::Index<&str> for Graph<A> {
     type Output = Node<A>;
     fn index(&self, name: &str) -> &Node<A> {
         let index = self.namespace[name];
@@ -109,14 +109,42 @@ impl<A: Field> ::std::ops::Index<&str> for Graph<A> {
 }
 
 // Panic if the name is not found
-impl<A: Field> ::std::ops::IndexMut<&str> for Graph<A> {
+impl<A> ::std::ops::IndexMut<&str> for Graph<A> {
     fn index_mut(&mut self, name: &str) -> &mut Node<A> {
         let index = self.namespace[name];
         &mut self.graph[index]
     }
 }
 
-impl<A: Field> Graph<A> {
+macro_rules! def_unary { ($name:ident, $enum:ident) => {
+    pub fn $name(&mut self, arg: NodeIndex) -> NodeIndex {
+        let n = self.graph.add_node(Unary::$enum.into());
+        self.graph.add_edge(arg, n, ());
+        n
+    }
+}} // def_unary
+
+macro_rules! def_binary { ($name:ident, $enum:ident) => {
+    pub fn $name(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let p = self.graph.add_node(Binary::$enum.into());
+        self.graph.add_edge(lhs, p, ());
+        self.graph.add_edge(rhs, p, ());
+        p
+    }
+}} // def_binary
+
+impl<A: Scalar> Graph<A> {
+    def_binary!(add, Add);
+    def_binary!(mul, Mul);
+    def_binary!(div, Div);
+    def_unary!(neg, Neg);
+    def_unary!(square, Square);
+
+    pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let m_rhs = self.neg(rhs);
+        self.add(lhs, m_rhs)
+    }
+
     /// new graph.
     pub fn new() -> Self {
         Self {
@@ -159,38 +187,6 @@ impl<A: Field> Graph<A> {
                 index: node.index(),
             })
         }
-    }
-
-    pub fn add(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.graph.add_node(Binary::Add.into());
-        self.graph.add_edge(lhs, p, ());
-        self.graph.add_edge(rhs, p, ());
-        p
-    }
-
-    pub fn mul(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.graph.add_node(Binary::Mul.into());
-        self.graph.add_edge(lhs, p, ());
-        self.graph.add_edge(rhs, p, ());
-        p
-    }
-
-    pub fn div(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.graph.add_node(Binary::Div.into());
-        self.graph.add_edge(lhs, p, ());
-        self.graph.add_edge(rhs, p, ());
-        p
-    }
-
-    pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
-        let n = self.graph.add_node(Unary::Neg.into());
-        self.graph.add_edge(arg, n, ());
-        n
-    }
-
-    pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let m_rhs = self.neg(rhs);
-        self.add(lhs, m_rhs)
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
