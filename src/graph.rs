@@ -116,7 +116,35 @@ impl<A> ::std::ops::IndexMut<&str> for Graph<A> {
     }
 }
 
+macro_rules! def_unary { ($name:ident, $enum:ident) => {
+    pub fn $name(&mut self, arg: NodeIndex) -> NodeIndex {
+        let n = self.graph.add_node(Unary::$enum.into());
+        self.graph.add_edge(arg, n, ());
+        n
+    }
+}} // def_unary
+
+macro_rules! def_binary { ($name:ident, $enum:ident) => {
+    pub fn $name(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let p = self.graph.add_node(Binary::$enum.into());
+        self.graph.add_edge(lhs, p, ());
+        self.graph.add_edge(rhs, p, ());
+        p
+    }
+}} // def_binary
+
 impl<A: Scalar> Graph<A> {
+    def_binary!(add, Add);
+    def_binary!(mul, Mul);
+    def_binary!(div, Div);
+    def_unary!(neg, Neg);
+    def_unary!(pow2, Pow2);
+
+    pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let m_rhs = self.neg(rhs);
+        self.add(lhs, m_rhs)
+    }
+
     /// new graph.
     pub fn new() -> Self {
         Self {
@@ -159,44 +187,6 @@ impl<A: Scalar> Graph<A> {
                 index: node.index(),
             })
         }
-    }
-
-    pub fn add(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.graph.add_node(Binary::Add.into());
-        self.graph.add_edge(lhs, p, ());
-        self.graph.add_edge(rhs, p, ());
-        p
-    }
-
-    pub fn mul(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.graph.add_node(Binary::Mul.into());
-        self.graph.add_edge(lhs, p, ());
-        self.graph.add_edge(rhs, p, ());
-        p
-    }
-
-    pub fn div(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let p = self.graph.add_node(Binary::Div.into());
-        self.graph.add_edge(lhs, p, ());
-        self.graph.add_edge(rhs, p, ());
-        p
-    }
-
-    pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
-        let n = self.graph.add_node(Unary::Neg.into());
-        self.graph.add_edge(arg, n, ());
-        n
-    }
-
-    pub fn pow2(&mut self, arg: NodeIndex) -> NodeIndex {
-        let n = self.graph.add_node(Unary::Pow2.into());
-        self.graph.add_edge(arg, n, ());
-        n
-    }
-
-    pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
-        let m_rhs = self.neg(rhs);
-        self.add(lhs, m_rhs)
     }
 
     fn get_arg1(&mut self, op: NodeIndex) -> NodeIndex {
