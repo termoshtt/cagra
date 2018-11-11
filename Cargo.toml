@@ -14,18 +14,16 @@ categories    = ["algorithms", "science"]
 
 [dependencies]
 failure = "0.1"
-num-traits = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 
+[dependencies.cauchy]
+path = "../cauchy"
+
 [dependencies.petgraph]
 version = "0.4"
 features = ["serde-1"]
-
-[dependencies.num-complex]
-version = "0.2"
-features = ["serde"]
 
 [dev-dependencies]
 approx = "0.3"

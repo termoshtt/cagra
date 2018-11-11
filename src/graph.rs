@@ -7,14 +7,14 @@ use std::io;
 
 use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
-use super::scalar::Field;
+use cauchy::Scalar;
 
 /// Node of the calculation graph.
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Node<A: Field> {
+pub struct Node<A> {
     value: Option<A>,
     deriv: Option<A>,
     property: Property,
@@ -29,7 +29,7 @@ enum Property {
     Binary(Binary),
 }
 
-impl<A: Field> Node<A> {
+impl<A> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
         match self.property {
@@ -57,7 +57,7 @@ impl<A: Field> Node<A> {
     }
 }
 
-impl<A: Field> From<Unary> for Node<A> {
+impl<A> From<Unary> for Node<A> {
     fn from(op: Unary) -> Self {
         Self {
             value: None,
@@ -67,7 +67,7 @@ impl<A: Field> From<Unary> for Node<A> {
     }
 }
 
-impl<A: Field> From<Binary> for Node<A> {
+impl<A> From<Binary> for Node<A> {
     fn from(op: Binary) -> Self {
         Self {
             value: None,
@@ -79,13 +79,13 @@ impl<A: Field> From<Binary> for Node<A> {
 
 /// Calculation graph based on `petgraph::graph::Graph`
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Graph<A: Field> {
+pub struct Graph<A> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
     namespace: HashMap<String, NodeIndex>,
 }
 
 // Panic if the index does not exists
-impl<A: Field> ::std::ops::Index<NodeIndex> for Graph<A> {
+impl<A> ::std::ops::Index<NodeIndex> for Graph<A> {
     type Output = Node<A>;
     fn index(&self, index: NodeIndex) -> &Node<A> {
         &self.graph[index]
@@ -93,14 +93,14 @@ impl<A: Field> ::std::ops::Index<NodeIndex> for Graph<A> {
 }
 
 // Panic if the index does not exists
-impl<A: Field> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
+impl<A> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
     fn index_mut(&mut self, index: NodeIndex) -> &mut Node<A> {
         &mut self.graph[index]
     }
 }
 
 // Panic if the name is not found
-impl<A: Field> ::std::ops::Index<&str> for Graph<A> {
+impl<A> ::std::ops::Index<&str> for Graph<A> {
     type Output = Node<A>;
     fn index(&self, name: &str) -> &Node<A> {
         let index = self.namespace[name];
@@ -109,14 +109,14 @@ impl<A: Field> ::std::ops::Index<&str> for Graph<A> {
 }
 
 // Panic if the name is not found
-impl<A: Field> ::std::ops::IndexMut<&str> for Graph<A> {
+impl<A> ::std::ops::IndexMut<&str> for Graph<A> {
     fn index_mut(&mut self, name: &str) -> &mut Node<A> {
         let index = self.namespace[name];
         &mut self.graph[index]
     }
 }
 
-impl<A: Field> Graph<A> {
+impl<A: Scalar> Graph<A> {
     /// new graph.
     pub fn new() -> Self {
         Self {
