@@ -7,6 +7,10 @@ use serde_derive::{Deserialize, Serialize};
 pub enum Unary {
     Neg,
     Square,
+    Exp,
+    Sin,
+    Cos,
+    Tan,
 }
 
 impl Unary {
@@ -15,6 +19,10 @@ impl Unary {
         match self {
             Unary::Neg => -arg,
             Unary::Square => arg.conj() * arg,
+            Unary::Exp => arg.exp(),
+            Unary::Sin => arg.sin(),
+            Unary::Cos => arg.cos(),
+            Unary::Tan => arg.tan(),
         }
     }
     /// Evaluate the derivative of the operator multiplied by the received
@@ -23,6 +31,10 @@ impl Unary {
         match self {
             Unary::Neg => -deriv,
             Unary::Square => A::from_f64(2.0).unwrap() * arg.conj() * deriv,
+            Unary::Exp => arg.exp() * deriv,
+            Unary::Sin => arg.cos() * deriv,
+            Unary::Cos => -arg.sin() * deriv,
+            Unary::Tan => -deriv / (arg.cos() * arg.cos()),
         }
     }
 }
