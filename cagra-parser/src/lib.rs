@@ -9,14 +9,18 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
         syn::Expr::Block(expr) => expr.block.stmts,
         _ => unreachable!("Argument of graph_impl! should be a block"),
     };
-    let stmts: Vec<_> = lines.iter().map(|line| {
-        match line {
+    let stmts: Vec<_> = lines
+        .into_iter()
+        .map(|line| match line {
             syn::Stmt::Local(local) => {
+                println!("{:?}", local.pats[0]);
+                let (_eq, expr) = &local.init.as_ref().unwrap();
+                println!("{:?}", expr);
+                // Rewrite
                 quote!(#local)
-            }
-            _ => unreachable!()
-        }
-    }).collect();
+            },
+            _ => unreachable!(),
+        }).collect();
     let a = quote!{
         fn graph_new() -> cagra::graph::Graph {
             let mut g = cagra::graph::Graph::new();
