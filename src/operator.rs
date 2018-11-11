@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Unary {
     Neg,
-    Pow2,
+    Square,
 }
 
 impl Unary {
@@ -14,7 +14,7 @@ impl Unary {
     pub fn eval_value<A: Scalar>(&self, arg: A) -> A {
         match self {
             Unary::Neg => -arg,
-            Unary::Pow2 => arg * arg,
+            Unary::Square => arg.conj() * arg,
         }
     }
     /// Evaluate the derivative of the operator multiplied by the received
@@ -22,7 +22,7 @@ impl Unary {
     pub fn eval_deriv<A: Scalar>(&self, arg: A, deriv: A) -> A {
         match self {
             Unary::Neg => -deriv,
-            Unary::Pow2 => A::from_f64(2.0).unwrap() * arg * deriv,
+            Unary::Square => A::from_f64(2.0).unwrap() * arg.conj() * deriv,
         }
     }
 }

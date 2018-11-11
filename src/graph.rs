@@ -138,7 +138,7 @@ impl<A: Scalar> Graph<A> {
     def_binary!(mul, Mul);
     def_binary!(div, Div);
     def_unary!(neg, Neg);
-    def_unary!(pow2, Pow2);
+    def_unary!(square, Square);
 
     pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
         let m_rhs = self.neg(rhs);
