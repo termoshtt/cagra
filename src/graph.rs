@@ -188,6 +188,12 @@ impl<A: Scalar> Graph<A> {
         n
     }
 
+    pub fn pow2(&mut self, arg: NodeIndex) -> NodeIndex {
+        let n = self.graph.add_node(Unary::Pow2.into());
+        self.graph.add_edge(arg, n, ());
+        n
+    }
+
     pub fn sub(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
         let m_rhs = self.neg(rhs);
         self.add(lhs, m_rhs)
