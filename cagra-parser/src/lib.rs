@@ -13,12 +13,23 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
         .into_iter()
         .map(|line| match line {
             syn::Stmt::Local(local) => {
-                println!("{:?}", local.pats[0]);
+                // lhs of `=`
+                if local.pats.len() != 1 {
+                    unreachable!("Unknown case ??");
+                }
+                let id = match &local.pats[0] {
+                    syn::Pat::Ident(id) => &id.ident,
+                    _ => unreachable!(""),
+                };
+                println!("{:?}", id);
+
+                // rhs of `=`
                 let (_eq, expr) = &local.init.as_ref().unwrap();
-                println!("{:?}", expr);
-                // Rewrite
-                quote!(#local)
-            },
+                let converted = convert(expr.clone());
+                println!("{:?}", converted);
+
+                quote!(let #id = #converted;)
+            }
             _ => unreachable!(),
         }).collect();
     let a = quote!{
@@ -29,4 +40,8 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
         }
     };
     a.into()
+}
+
+fn convert(expr: Box<syn::Expr>) -> Box<syn::Expr> {
+    expr
 }
