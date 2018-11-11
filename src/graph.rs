@@ -175,6 +175,13 @@ impl<A: Field> Graph<A> {
         p
     }
 
+    pub fn div(&mut self, lhs: NodeIndex, rhs: NodeIndex) -> NodeIndex {
+        let p = self.graph.add_node(Binary::Div.into());
+        self.graph.add_edge(lhs, p, ());
+        self.graph.add_edge(rhs, p, ());
+        p
+    }
+
     pub fn neg(&mut self, arg: NodeIndex) -> NodeIndex {
         let n = self.graph.add_node(Unary::Neg.into());
         self.graph.add_edge(arg, n, ());
