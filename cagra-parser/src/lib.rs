@@ -1,5 +1,7 @@
 extern crate proc_macro;
+
 use self::proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::parse_macro_input;
 
@@ -19,29 +21,55 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
                 }
                 let id = match &local.pats[0] {
                     syn::Pat::Ident(id) => &id.ident,
-                    _ => unreachable!(""),
+                    _ => unreachable!("Unsupported lhs pattern"),
                 };
-                println!("{:?}", id);
 
                 // rhs of `=`
-                let (_eq, expr) = &local.init.as_ref().unwrap();
-                let converted = convert(expr.clone());
-                println!("{:?}", converted);
-
-                quote!(let #id = #converted;)
+                let (_eq, expr) = local.init.unwrap();
+                let expr = quote_expr(&expr, Some(id.to_string()));
+                quote!(let #id = #expr;)
             }
             _ => unreachable!(),
         }).collect();
-    let a = quote!{
-        fn graph_new() -> cagra::graph::Graph {
+    let stream = quote!{
+        #[allow(unused_variables)]
+        fn graph_new() -> cagra::graph::Graph<f32> {
             let mut g = cagra::graph::Graph::new();
-            #(#stmts)*
+            #( #stmts )*
             g
         }
     };
-    a.into()
+    stream.into()
 }
 
-fn convert(expr: Box<syn::Expr>) -> Box<syn::Expr> {
-    expr
+fn quote_expr(expr: &syn::Expr, name: Option<String>) -> TokenStream2 {
+    match expr {
+        syn::Expr::Call(call) => {
+            let f = quote_expr(&call.func, None);
+            let quoted = call.args.iter().map(|arg| quote!{ #arg });
+            quote!{ g.#f(#(#quoted),*) }
+        }
+        syn::Expr::Binary(bin) => {
+            let lhs = quote_expr(&bin.left, None);
+            let rhs = quote_expr(&bin.right, None);
+            let (op_str, span) = match bin.op {
+                syn::BinOp::Add(op) => ("add", op.spans[0]),
+                syn::BinOp::Sub(op) => ("sub", op.spans[0]),
+                syn::BinOp::Mul(op) => ("mul", op.spans[0]),
+                syn::BinOp::Div(op) => ("div", op.spans[0]),
+                _ => unreachable!("Unsupported binary operator: {:?}", bin.op),
+            };
+            let op = syn::Ident::new(op_str, span);
+            quote!{ g.#op(#lhs, #rhs) }
+        }
+        syn::Expr::Lit(lit) => match name {
+            Some(name) => {
+                quote!{ g.variable(#name, #lit).expect("Duplicated symbols") }
+            }
+            None => quote!{ g.constant(#lit) },
+        },
+        _ => {
+            quote!{ #expr }
+        }
+    }
 }

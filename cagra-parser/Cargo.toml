@@ -14,5 +14,6 @@ path = ".."
 version = "*"
 features = ["full"]
 
-[dependencies.quote]
-version = "*"
+[dependencies]
+quote = "*"
+proc-macro2 = "*"
