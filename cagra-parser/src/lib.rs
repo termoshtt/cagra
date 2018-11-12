@@ -26,8 +26,11 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
 
                 // rhs of `=`
                 let (_eq, expr) = local.init.unwrap();
-                let expr = quote_expr(&expr, Some(id.to_string()));
-                quote!(let #id = #expr;)
+                let (dep, expr) = quote_expr(&expr, &id.to_string());
+                quote!{
+                    #(#dep)*
+                    let #id = #expr;
+                }
             }
             _ => unreachable!(),
         }).collect();
@@ -42,16 +45,28 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
     stream.into()
 }
 
-fn quote_expr(expr: &syn::Expr, name: Option<String>) -> TokenStream2 {
+fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2) {
     match expr {
         syn::Expr::Call(call) => {
-            let f = quote_expr(&call.func, None);
-            let quoted = call.args.iter().map(|arg| quote!{ #arg });
-            quote!{ g.#f(#(#quoted),*) }
+            let mut ts = Vec::new();
+            let mut args = Vec::new();
+            for (i, arg) in call.args.iter().enumerate() {
+                let name = format!("{}_arg{}", name, i);
+                let id = syn::Ident::new(&name, proc_macro2::Span::call_site());
+                let (mut dep, arg) = quote_expr(arg, &name);
+                ts.append(&mut dep);
+                ts.push(quote!{ let #id = #arg; });
+                args.push( quote!( #id ) );
+            }
+            let f = &call.func;
+            let f = quote!( #f );
+            let id = syn::Ident::new(&name, proc_macro2::Span::call_site());
+            ts.push(quote!{ let #id = g.#f(#(#args),*); });
+            (ts, quote!{ #id })
         }
         syn::Expr::Binary(bin) => {
-            let lhs = quote_expr(&bin.left, None);
-            let rhs = quote_expr(&bin.right, None);
+            let (mut dep_lhs, lhs) = quote_expr(&bin.left, &format!("{}_lhs", name));
+            let (mut dep_rhs, rhs) = quote_expr(&bin.right, &format!("{}_rhs", name));
             let (op_str, span) = match bin.op {
                 syn::BinOp::Add(op) => ("add", op.spans[0]),
                 syn::BinOp::Sub(op) => ("sub", op.spans[0]),
@@ -60,16 +75,19 @@ fn quote_expr(expr: &syn::Expr, name: Option<String>) -> TokenStream2 {
                 _ => unreachable!("Unsupported binary operator: {:?}", bin.op),
             };
             let op = syn::Ident::new(op_str, span);
-            quote!{ g.#op(#lhs, #rhs) }
+            dep_lhs.append(&mut dep_rhs);
+            (dep_lhs, quote!{ g.#op(#lhs, #rhs) })
         }
-        syn::Expr::Lit(lit) => match name {
-            Some(name) => {
-                quote!{ g.variable(#name, #lit).expect("Duplicated symbols") }
-            }
-            None => quote!{ g.constant(#lit) },
-        },
+        syn::Expr::Lit(lit) => {
+            println!("lit = {:?}", lit);
+            let id = syn::Ident::new(name, proc_macro2::Span::call_site());
+            let dep =
+                vec![quote!{ let #id = g.variable(#name, #lit).expect("Duplicated symbols"); }];
+            (dep, quote!( #id ))
+        }
         _ => {
-            quote!{ #expr }
+            let id = syn::Ident::new(name, proc_macro2::Span::call_site());
+            (vec![quote!{ let #id = #expr; }], quote!( #id ))
         }
     }
 }
