@@ -38,6 +38,10 @@
 //! abs_diff_eq!(dy, -1.0);
 //! ```
 
-pub mod error;
+#[doc(hidden)]
+pub extern crate cagra_parser as parser;
+
+#[macro_use]
 pub mod graph;
+pub mod error;
 pub mod operator;
