@@ -3,20 +3,20 @@ extern crate proc_macro;
 use self::proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse_macro_input, Token};
 use syn::parse::{Parse, ParseStream, Result};
+use syn::{parse_macro_input, Token};
 
 struct Input {
     ty: syn::Type,
-    expr: syn::Expr,
+    block: syn::Block,
 }
 
 impl Parse for Input {
-     fn parse(input: ParseStream) -> Result<Self> {
-         let ty = input.parse()?;
-         let _: Token![,] = input.parse()?;
-         let expr = input.parse()?;
-         Ok( Input { ty, expr })
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ty = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let block = input.parse()?;
+        Ok(Input { ty, block })
     }
 }
 
@@ -24,10 +24,7 @@ impl Parse for Input {
 pub fn graph_impl(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as Input);
     let ty = &input.ty;
-    let lines = match input.expr {
-        syn::Expr::Block(expr) => expr.block.stmts,
-        _ => unreachable!("Argument of graph_impl! should be a block"),
-    };
+    let lines = &input.block.stmts;
     let stmts: Vec<_> = lines
         .into_iter()
         .map(|line| match line {
@@ -42,7 +39,7 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
                 };
 
                 // rhs of `=`
-                let (_eq, expr) = local.init.unwrap();
+                let (_eq, expr) = local.init.as_ref().unwrap();
                 let (dep, expr) = quote_expr(&expr, &id.to_string());
                 quote!{
                     #(#dep)*

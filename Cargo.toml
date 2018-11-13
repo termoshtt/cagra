@@ -28,6 +28,5 @@ features = ["serde-1"]
 [dev-dependencies]
 approx = "0.3"
 
-[dev-dependencies.cagra-parser]
+[dependencies.cagra-parser]
 path = "cagra-parser"
-
