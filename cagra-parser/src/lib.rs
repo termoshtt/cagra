@@ -3,11 +3,28 @@ extern crate proc_macro;
 use self::proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::parse_macro_input;
+use syn::{parse_macro_input, Token};
+use syn::parse::{Parse, ParseStream, Result};
+
+struct Input {
+    ty: syn::Type,
+    expr: syn::Expr,
+}
+
+impl Parse for Input {
+     fn parse(input: ParseStream) -> Result<Self> {
+         let ty = input.parse()?;
+         let _: Token![,] = input.parse()?;
+         let expr = input.parse()?;
+         Ok( Input { ty, expr })
+    }
+}
 
 #[proc_macro]
 pub fn graph_impl(item: TokenStream) -> TokenStream {
-    let lines = match parse_macro_input!(item as syn::Expr) {
+    let input = parse_macro_input!(item as Input);
+    let ty = &input.ty;
+    let lines = match input.expr {
         syn::Expr::Block(expr) => expr.block.stmts,
         _ => unreachable!("Argument of graph_impl! should be a block"),
     };
@@ -36,7 +53,7 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
         }).collect();
     let stream = quote!{
         #[allow(unused_variables)]
-        fn graph_new() -> cagra::graph::Graph<f32> {
+        fn graph_new() -> cagra::graph::Graph<#ty> {
             let mut g = cagra::graph::Graph::new();
             #( #stmts )*
             g
