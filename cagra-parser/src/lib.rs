@@ -79,18 +79,25 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
             (ts, quote!{ #id })
         }
         syn::Expr::Binary(bin) => {
-            let (mut dep_lhs, lhs) = quote_expr(&bin.left, &format!("{}_lhs", name));
-            let (mut dep_rhs, rhs) = quote_expr(&bin.right, &format!("{}_rhs", name));
+            let name_lhs = format!("{}_lhs", name);
+            let name_rhs = format!("{}_rhs", name);
+            let (mut dep_lhs, lhs) = quote_expr(&bin.left, &name_lhs);
+            let (mut dep_rhs, rhs) = quote_expr(&bin.right, &name_rhs);
+            dep_lhs.append(&mut dep_rhs);
+            let id_lhs = syn::Ident::new(&name_lhs, proc_macro2::Span::call_site());
+            let id_rhs = syn::Ident::new(&name_rhs, proc_macro2::Span::call_site());
+            dep_lhs.push(quote!{ let #id_lhs = #lhs; });
+            dep_lhs.push(quote!{ let #id_rhs = #rhs; });
+
             let (op_str, span) = match bin.op {
                 syn::BinOp::Add(op) => ("add", op.spans[0]),
                 syn::BinOp::Sub(op) => ("sub", op.spans[0]),
                 syn::BinOp::Mul(op) => ("mul", op.spans[0]),
                 syn::BinOp::Div(op) => ("div", op.spans[0]),
-                _ => unreachable!("Unsupported binary operator: {:?}", bin.op),
+                _ => unreachable!("Unsupported binary operator"),
             };
             let op = syn::Ident::new(op_str, span);
-            dep_lhs.append(&mut dep_rhs);
-            (dep_lhs, quote!{ g.#op(#lhs, #rhs) })
+            (dep_lhs, quote!{ g.#op(#id_lhs, #id_rhs) })
         }
         syn::Expr::Lit(lit) => {
             let id = syn::Ident::new(name, proc_macro2::Span::call_site());
@@ -99,8 +106,7 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
             (dep, quote!( #id ))
         }
         _ => {
-            let id = syn::Ident::new(name, proc_macro2::Span::call_site());
-            (vec![quote!{ let #id = #expr; }], quote!( #id ))
+            (Vec::new(), quote!( #expr ))
         }
     }
 }
