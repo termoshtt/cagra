@@ -9,6 +9,19 @@ use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
 use cauchy::Scalar;
 
+#[macro_export]
+macro_rules! graph {
+    ($scalar:ty, $proc:block) => {{
+        // non-hygienic hack
+        // See https://qiita.com/ubnt_intrepid/items/dcfabd5b0ae4d4e105da (Japanese)
+        enum DummyGraphNew {}
+        impl DummyGraphNew {
+            $crate::parser::graph_impl!($scalar, $proc);
+        }
+        DummyGraphNew::graph_new()
+    }};
+}
+
 /// Node of the calculation graph.
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
