@@ -32,7 +32,7 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
                     let #id = #expr;
                 }
             }
-            _ => unreachable!(),
+            _ => unreachable!("cagra-parser supports 'let' statement only"),
         }).collect();
     let stream = quote!{
         #[allow(unused_variables)]
@@ -56,7 +56,7 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
                 let (mut dep, arg) = quote_expr(arg, &name);
                 ts.append(&mut dep);
                 ts.push(quote!{ let #id = #arg; });
-                args.push( quote!( #id ) );
+                args.push(quote!( #id ));
             }
             let f = &call.func;
             let f = quote!( #f );
@@ -79,7 +79,6 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
             (dep_lhs, quote!{ g.#op(#lhs, #rhs) })
         }
         syn::Expr::Lit(lit) => {
-            println!("lit = {:?}", lit);
             let id = syn::Ident::new(name, proc_macro2::Span::call_site());
             let dep =
                 vec![quote!{ let #id = g.variable(#name, #lit).expect("Duplicated symbols"); }];

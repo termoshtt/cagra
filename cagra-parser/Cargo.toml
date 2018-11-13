@@ -7,13 +7,13 @@ edition = "2018"
 [lib]
 proc-macro = true
 
-[dependencies.cagra]
-path = ".."
+[dependencies]
+quote = "*"
+proc-macro2 = "*"
 
 [dependencies.syn]
 version = "*"
 features = ["full"]
 
-[dependencies]
-quote = "*"
-proc-macro2 = "*"
+[dev-dependencies.cagra]
+path = ".."
