@@ -65,7 +65,7 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
             let mut ts = Vec::new();
             let mut args = Vec::new();
             for (i, arg) in call.args.iter().enumerate() {
-                let name = format!("{}_arg{}", name, i);
+                let name = format!("{}__arg{}", name, i);
                 let id = syn::Ident::new(&name, proc_macro2::Span::call_site());
                 let (mut dep, arg) = quote_expr(arg, &name);
                 ts.append(&mut dep);
@@ -79,8 +79,8 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
             (ts, quote!{ #id })
         }
         syn::Expr::Binary(bin) => {
-            let name_lhs = format!("{}_lhs", name);
-            let name_rhs = format!("{}_rhs", name);
+            let name_lhs = format!("{}__lhs", name);
+            let name_rhs = format!("{}__rhs", name);
             let (mut dep_lhs, lhs) = quote_expr(&bin.left, &name_lhs);
             let (mut dep_rhs, rhs) = quote_expr(&bin.right, &name_rhs);
             dep_lhs.append(&mut dep_rhs);
@@ -101,9 +101,12 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
         }
         syn::Expr::Lit(lit) => {
             let id = syn::Ident::new(name, proc_macro2::Span::call_site());
-            let dep =
-                vec![quote!{ let #id = g.variable(#name, #lit).expect("Duplicated symbols"); }];
-            (dep, quote!( #id ))
+            let dep = if name.find("__").is_none() {
+                quote!{ let #id = g.variable(#name, #lit).expect("Duplicated symbols"); }
+            } else {
+                quote!{ let #id = g.constant(#lit); }
+            };
+            (vec![dep], quote!( #id ))
         }
         _ => {
             (Vec::new(), quote!( #expr ))
