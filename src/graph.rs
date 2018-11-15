@@ -97,6 +97,12 @@ pub struct Graph<A> {
     namespace: HashMap<String, NodeIndex>,
 }
 
+impl<A> Graph<A> {
+    pub fn get_index(&self, name: &str) -> NodeIndex {
+        self.namespace[name]
+    }
+}
+
 // Panic if the index does not exists
 impl<A> ::std::ops::Index<NodeIndex> for Graph<A> {
     type Output = Node<A>;
@@ -197,6 +203,10 @@ impl<A: Scalar> Graph<A> {
         let var = self.empty_variable(name)?;
         self.set_value(var, value).unwrap();
         Ok(var)
+    }
+
+    pub fn set_name(&mut self, node: NodeIndex, name: &str) -> Option<NodeIndex> {
+        self.namespace.insert(name.to_string(), node)
     }
 
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.

@@ -37,13 +37,15 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
                     syn::Pat::Ident(id) => &id.ident,
                     _ => unreachable!("Unsupported lhs pattern"),
                 };
+                let name = id.to_string();
 
                 // rhs of `=`
                 let (_eq, expr) = local.init.as_ref().unwrap();
-                let (dep, expr) = quote_expr(&expr, &id.to_string());
+                let (dep, expr) = quote_expr(&expr, &name);
                 quote!{
                     #(#dep)*
                     let #id = #expr;
+                    g.set_name(#id, #name);
                 }
             }
             _ => unreachable!("cagra-parser supports 'let' statement only"),
@@ -108,8 +110,6 @@ fn quote_expr(expr: &syn::Expr, name: &str) -> (Vec<TokenStream2>, TokenStream2)
             };
             (vec![dep], quote!( #id ))
         }
-        _ => {
-            (Vec::new(), quote!( #expr ))
-        }
+        _ => (Vec::new(), quote!( #expr )),
     }
 }
