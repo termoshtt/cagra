@@ -296,6 +296,9 @@ impl<A: Scalar> Graph<A> {
 
     /// Evaluate derivative recursively.
     pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
+        for idx in self.graph.node_indices() {
+            self[idx].deriv = None;
+        }
         self.deriv_recur(node, A::one())
     }
 
