@@ -25,8 +25,13 @@ git = "http://github.com/termoshtt/cauchy"
 version = "0.4"
 features = ["serde-1"]
 
-[dev-dependencies]
-approx = "0.3"
-
 [dependencies.cagra-parser]
 path = "cagra-parser"
+
+[dev-dependencies]
+approx = "0.3"
+criterion = "0.2"
+
+[[bench]]
+name = "criterion_sample"
+harness = false
