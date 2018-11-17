@@ -7,3 +7,4 @@ rust:
 
 script:
   - cargo test -vv
+  - cd cagra-hamilton && cargo run --release
