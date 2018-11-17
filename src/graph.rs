@@ -97,6 +97,12 @@ pub struct Graph<A> {
     namespace: HashMap<String, NodeIndex>,
 }
 
+impl<A> Graph<A> {
+    pub fn get_index(&self, name: &str) -> NodeIndex {
+        self.namespace[name]
+    }
+}
+
 // Panic if the index does not exists
 impl<A> ::std::ops::Index<NodeIndex> for Graph<A> {
     type Output = Node<A>;
@@ -199,6 +205,10 @@ impl<A: Scalar> Graph<A> {
         Ok(var)
     }
 
+    pub fn set_name(&mut self, node: NodeIndex, name: &str) -> Option<NodeIndex> {
+        self.namespace.insert(name.to_string(), node)
+    }
+
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
     pub fn set_value(&mut self, node: NodeIndex, value: A) -> Result<()> {
         if self.graph[node].is_variable() {
@@ -286,6 +296,9 @@ impl<A: Scalar> Graph<A> {
 
     /// Evaluate derivative recursively.
     pub fn eval_deriv(&mut self, node: NodeIndex) -> Result<()> {
+        for idx in self.graph.node_indices() {
+            self[idx].deriv = None;
+        }
         self.deriv_recur(node, A::one())
     }
 
