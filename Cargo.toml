@@ -33,5 +33,5 @@ approx = "0.3"
 criterion = "0.2"
 
 [[bench]]
-name = "criterion_sample"
+name = "cagra"
 harness = false
