@@ -3,8 +3,10 @@ sudo: false
 dist: trusty
 
 rust:
+  - beta
   - nightly
 
 script:
   - cargo test -vv
+  - cargo bench
   - cd cagra-hamilton && cargo run --release
