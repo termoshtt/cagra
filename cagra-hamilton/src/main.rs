@@ -14,8 +14,8 @@ fn main() -> Result<(), Error> {
     let h = g.get_index("h");
 
     let dt = 0.01;
-    println!("E,q,p"); // csv header
-    for _ in 0..200 {
+    println!("t,E,q,p"); // csv header
+    for t in 0..1000 {
         let e = g.eval_value(h)?;
         g.eval_deriv(h)?;
 
@@ -31,7 +31,7 @@ fn main() -> Result<(), Error> {
         let hp = g.get_deriv(p)?;
         g.set_value(q, vq + dt * hp)?;
 
-        println!("{:.09},{:.09},{:.09}", e, vq, vp);
+        println!("{:.09},{:.09},{:.09},{:.09}", dt * t as f64, e, vq, vp);
     }
     Ok(())
 }
