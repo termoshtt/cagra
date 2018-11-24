@@ -3,7 +3,7 @@
 use petgraph::prelude::*;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::{hash_map::Entry, HashMap};
-use std::io;
+use std::{fmt, io};
 
 use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
@@ -26,11 +26,33 @@ macro_rules! graph {
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Node<A> {
     value: Option<A>,
     deriv: Option<A>,
     property: Property,
+}
+
+impl<A: fmt::Debug> fmt::Debug for Node<A> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.property {
+            Property::Constant | Property::Variable => {}
+            Property::Unary(unary) => write!(f, "{:?}/", unary)?,
+            Property::Binary(bin) => write!(f, "{:?}/", bin)?,
+        }
+        if let Some(val) = &self.value {
+            write!(f, "Value:{:?}", val)?
+        } else {
+            write!(f, "Value:N/A")?
+        }
+        write!(f, ", ")?;
+        if let Some(deriv) = &self.deriv {
+            write!(f, "Deriv={:?}", deriv)?;
+        } else {
+            write!(f, "Deriv=N/A")?;
+        }
+        Ok(())
+    }
 }
 
 /// Extra propaties of the `Node` accoding to the node type.
@@ -308,5 +330,15 @@ impl<A: Scalar> Graph<A> {
 
     pub fn to_json_str(&self) -> Result<String> {
         serde_json::to_string(self).map_err(|error| Error::JSONSerializeFailed { error })
+    }
+
+    pub fn to_dot(&self, sink: &mut impl io::Write) -> io::Result<()>
+    where
+        A: fmt::Debug,
+    {
+        use petgraph::dot;
+        let dot = dot::Dot::with_config(&self.graph, &[dot::Config::EdgeNoLabel]);
+        write!(sink, "{:?}", dot)?;
+        Ok(())
     }
 }
