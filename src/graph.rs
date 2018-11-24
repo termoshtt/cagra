@@ -37,19 +37,19 @@ impl<A: fmt::Debug> fmt::Debug for Node<A> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.property {
             Property::Constant | Property::Variable => {}
-            Property::Unary(unary) => write!(f, "{:?}/", unary)?,
-            Property::Binary(bin) => write!(f, "{:?}/", bin)?,
+            Property::Unary(unary) => write!(f, "Unary: {:?}\n", unary)?,
+            Property::Binary(bin) => write!(f, "Binary: {:?}\n", bin)?,
         }
         if let Some(val) = &self.value {
-            write!(f, "Value:{:?}", val)?
+            write!(f, "value={:?}", val)?
         } else {
-            write!(f, "Value:N/A")?
+            write!(f, "value=N/A")?
         }
         write!(f, ", ")?;
         if let Some(deriv) = &self.deriv {
-            write!(f, "Deriv={:?}", deriv)?;
+            write!(f, "deriv={:?}", deriv)?;
         } else {
-            write!(f, "Deriv=N/A")?;
+            write!(f, "deriv=N/A")?;
         }
         Ok(())
     }
