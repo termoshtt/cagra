@@ -8,12 +8,12 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-quote = "*"
-proc-macro2 = "*"
+quote = "0.6"
+proc-macro2 = "0.4"
 
 [dependencies.syn]
-version = "*"
+version = "0.15"
 features = ["full"]
 
 [dev-dependencies.cagra]
-path = ".."
+path = "0.1"
