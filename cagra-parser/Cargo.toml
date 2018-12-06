@@ -4,6 +4,14 @@ version = "0.1.0"
 authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
 edition = "2018"
 
+description   = "Parser macro for cagra"
+documentation = "https://docs.rs/cagra-parser"
+repository    = "https://github.com/termoshtt/cagra"
+keywords      = ["calculation-graph", "proc-macro"]
+license       = "MIT"
+readme        = "README.md"
+categories    = ["algorithms", "science"]
+
 [lib]
 proc-macro = true
 
