@@ -3,6 +3,7 @@ sudo: false
 dist: trusty
 
 rust:
+  - stable
   - beta
   - nightly
 
