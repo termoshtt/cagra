@@ -1,3 +1,5 @@
 cagra-parser
 ============
-Parser for cagra
+[![Crate](http://meritbadge.herokuapp.com/cagra-parser)](https://crates.io/crates/cagra-parser)
+
+Proc-macro for cagra
