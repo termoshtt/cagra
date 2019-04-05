@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "cagra",
+  "cagra-hamilton",
+  "cagra-parser",
+]
