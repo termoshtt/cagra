@@ -17,23 +17,23 @@
 //!
 //! ```
 //! # use approx::abs_diff_eq;
-//! use cagra::graph::*;
+//! use cagra::{graph::*, tensor::*};
 //!
 //! let mut g: Graph<f64> = Graph::new();
-//! let x = g.variable("x", 1.0).unwrap();
-//! let y = g.variable("y", 3.0).unwrap();
+//! let x = g.scalar("x", 1.0).unwrap();
+//! let y = g.scalar("y", 3.0).unwrap();
 //! let x_y = g.add(x, y);
 //! let xy  = g.mul(x, y);
-//! let a   = g.constant(2.0);
+//! let a   = g.constant_scalar(2.0);
 //! let axy = g.mul(a, xy);
 //! let sum = g.sub(x_y, axy);
 //!
-//! let result = g.eval_value(sum).unwrap();
+//! let result = g.eval_value(sum).unwrap().as_scalar().unwrap();
 //! abs_diff_eq!(result, -2.0);
 //!
 //! g.eval_deriv(sum);
-//! let dx = g.get_deriv(x).unwrap();
-//! let dy = g.get_deriv(y).unwrap();
+//! let dx = g.get_deriv(x).unwrap().as_scalar().unwrap();
+//! let dy = g.get_deriv(y).unwrap().as_scalar().unwrap();
 //! abs_diff_eq!(dx, -5.0);
 //! abs_diff_eq!(dy, -1.0);
 //! ```
