@@ -45,3 +45,4 @@ pub extern crate cagra_parser as parser;
 pub mod graph;
 pub mod error;
 pub mod operator;
+pub mod tensor;
