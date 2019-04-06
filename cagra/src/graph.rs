@@ -8,7 +8,8 @@ use std::{fmt, io};
 use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
 use cauchy::Scalar;
-use ndarray::{arr0, ArrayD};
+
+pub type Tensor<A> = ndarray::ArcArray<A, ndarray::IxDyn>;
 
 #[macro_export]
 macro_rules! graph {
@@ -29,8 +30,8 @@ macro_rules! graph {
 /// using this value.
 #[derive(Clone)]
 pub struct Node<A: Scalar> {
-    value: Option<ArrayD<A>>,
-    deriv: Option<ArrayD<A>>,
+    value: Option<Tensor<A>>,
+    deriv: Option<Tensor<A>>,
     property: Property,
 }
 
@@ -84,9 +85,9 @@ impl<A: Scalar> Node<A> {
         }
     }
 
-    fn constant(a: A) -> Self {
+    fn constant(a: Tensor<A>) -> Self {
         Self {
-            value: Some(arr0(a).into_dyn()),
+            value: Some(a),
             deriv: None,
             property: Property::Constant,
         }
@@ -203,7 +204,7 @@ impl<A: Scalar> Graph<A> {
         }
     }
 
-    pub fn constant(&mut self, value: A) -> NodeIndex {
+    pub fn constant(&mut self, value: Tensor<A>) -> NodeIndex {
         self.graph.add_node(Node::constant(value))
     }
 
@@ -221,7 +222,7 @@ impl<A: Scalar> Graph<A> {
     }
 
     /// Create new variable with value
-    pub fn variable(&mut self, name: &str, value: A) -> Result<NodeIndex> {
+    pub fn variable(&mut self, name: &str, value: Tensor<A>) -> Result<NodeIndex> {
         let var = self.empty_variable(name)?;
         self.set_value(var, value).unwrap();
         Ok(var)
@@ -232,9 +233,9 @@ impl<A: Scalar> Graph<A> {
     }
 
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
-    pub fn set_value(&mut self, node: NodeIndex, value: A) -> Result<()> {
+    pub fn set_value(&mut self, node: NodeIndex, value: Tensor<A>) -> Result<()> {
         if self.graph[node].is_variable() {
-            self.graph[node].value = Some(arr0(value).into_dyn());
+            self.graph[node].value = Some(value);
             Ok(())
         } else {
             Err(Error::NodeTypeError {
@@ -256,7 +257,7 @@ impl<A: Scalar> Graph<A> {
     }
 
     /// Evaluate the value of the node recusively.
-    pub fn eval_value(&mut self, node: NodeIndex) -> Result<ArrayD<A>> {
+    pub fn eval_value(&mut self, node: NodeIndex) -> Result<Tensor<A>> {
         let prop = self[node].property;
         match prop {
             Property::Variable => self.get_value(node),
@@ -281,22 +282,22 @@ impl<A: Scalar> Graph<A> {
         }
     }
 
-    pub fn get_value(&self, node: NodeIndex) -> Result<ArrayD<A>> {
-        self[node].value.ok_or(Error::ValueUninitialized {
+    pub fn get_value(&self, node: NodeIndex) -> Result<Tensor<A>> {
+        self[node].value.clone().ok_or(Error::ValueUninitialized {
             index: node.index(),
         })
     }
 
-    pub fn get_deriv(&self, node: NodeIndex) -> Result<ArrayD<A>> {
-        self[node].deriv.ok_or(Error::DerivUninitialized {
+    pub fn get_deriv(&self, node: NodeIndex) -> Result<Tensor<A>> {
+        self[node].deriv.clone().ok_or(Error::DerivUninitialized {
             index: node.index(),
         })
     }
 
-    fn deriv_recur(&mut self, node: NodeIndex, der: ArrayD<A>) -> Result<()> {
-        self[node].deriv = match self[node].deriv {
-            Some(der_last) => Some(der_last + der),
-            None => Some(der),
+    fn deriv_recur(&mut self, node: NodeIndex, der: Tensor<A>) -> Result<()> {
+        self[node].deriv = match self[node].deriv.clone() {
+            Some(der_last) => Some(der_last + der.clone()),
+            None => Some(der.clone()),
         };
         let property = self[node].property;
         match property {
@@ -322,7 +323,7 @@ impl<A: Scalar> Graph<A> {
             self[idx].deriv = None;
         }
         let shape = self[node].value.as_ref().unwrap().shape();
-        self.deriv_recur(node, ArrayD::ones(shape))
+        self.deriv_recur(node, Tensor::ones(shape))
     }
 
     pub fn to_dot(&self, sink: &mut impl io::Write) -> io::Result<()>
