@@ -22,41 +22,21 @@ pub enum Unary {
 
 impl Unary {
     /// Evaluate the result value of the operator
-    pub fn eval_value<A: Scalar>(&self, mut arg: Tensor<A>) -> Tensor<A> {
+    pub fn eval_value<A: Scalar>(&self, arg: Tensor<A>) -> Tensor<A> {
         match self {
-            Unary::Neg => {
-                arg = -arg;
-            }
-            Unary::Square => {
-                azip!(mut arg in { *arg = arg.conj() * *arg });
-            }
-            Unary::Exp => {
-                azip!(mut arg in { *arg = arg.exp() });
-            }
-            Unary::Ln => {
-                azip!(mut arg in { *arg = arg.ln() });
-            }
-            Unary::Sin => {
-                azip!(mut arg in { *arg = arg.sin() });
-            }
-            Unary::Cos => {
-                azip!(mut arg in { *arg = arg.cos() });
-            }
-            Unary::Tan => {
-                azip!(mut arg in { *arg = arg.tan() });
-            }
-            Unary::Sinh => {
-                azip!(mut arg in { *arg = arg.sinh() });
-            }
-            Unary::Cosh => {
-                azip!(mut arg in { *arg = arg.cosh() });
-            }
-            Unary::Tanh => {
-                azip!(mut arg in { *arg = arg.tanh() });
-            }
+            Unary::Neg => -arg,
+            Unary::Square => arg.mapv_into(|a| a.conj() * a),
+            Unary::Ln => arg.mapv_into(|a| a.ln()),
+            Unary::Exp => arg.mapv_into(|a| a.exp()),
+            Unary::Sin => arg.mapv_into(|a| a.sin()),
+            Unary::Cos => arg.mapv_into(|a| a.cos()),
+            Unary::Tan => arg.mapv_into(|a| a.tan()),
+            Unary::Sinh => arg.mapv_into(|a| a.sinh()),
+            Unary::Cosh => arg.mapv_into(|a| a.cosh()),
+            Unary::Tanh => arg.mapv_into(|a| a.tanh()),
         }
-        arg
     }
+
     /// Evaluate the derivative of the operator multiplied by the received
     /// derivative from upper of the graph.
     pub fn eval_deriv<A: Scalar>(&self, arg: Tensor<A>, mut deriv: Tensor<A>) -> Tensor<A> {
