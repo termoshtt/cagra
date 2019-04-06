@@ -8,6 +8,7 @@ use std::{fmt, io};
 use super::error::{Error, Result};
 use super::operator::{Binary, Unary};
 use cauchy::Scalar;
+use ndarray::{arr0, ArrayD};
 
 #[macro_export]
 macro_rules! graph {
@@ -26,14 +27,14 @@ macro_rules! graph {
 ///
 /// This struct keeps the last value, and `Graph` calculates the derivative
 /// using this value.
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Node<A> {
-    value: Option<A>,
-    deriv: Option<A>,
+#[derive(Clone)]
+pub struct Node<A: Scalar> {
+    value: Option<ArrayD<A>>,
+    deriv: Option<ArrayD<A>>,
     property: Property,
 }
 
-impl<A: fmt::Debug> fmt::Debug for Node<A> {
+impl<A: Scalar + fmt::Debug> fmt::Debug for Node<A> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.property {
             Property::Constant | Property::Variable => {}
@@ -64,7 +65,7 @@ enum Property {
     Binary(Binary),
 }
 
-impl<A> Node<A> {
+impl<A: Scalar> Node<A> {
     /// Check the node is variable
     pub fn is_variable(&self) -> bool {
         match self.property {
@@ -85,14 +86,14 @@ impl<A> Node<A> {
 
     fn constant(a: A) -> Self {
         Self {
-            value: Some(a),
+            value: Some(arr0(a).into_dyn()),
             deriv: None,
             property: Property::Constant,
         }
     }
 }
 
-impl<A> From<Unary> for Node<A> {
+impl<A: Scalar> From<Unary> for Node<A> {
     fn from(op: Unary) -> Self {
         Self {
             value: None,
@@ -102,7 +103,7 @@ impl<A> From<Unary> for Node<A> {
     }
 }
 
-impl<A> From<Binary> for Node<A> {
+impl<A: Scalar> From<Binary> for Node<A> {
     fn from(op: Binary) -> Self {
         Self {
             value: None,
@@ -113,20 +114,20 @@ impl<A> From<Binary> for Node<A> {
 }
 
 /// Calculation graph based on `petgraph::graph::Graph`
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Graph<A> {
+#[derive(Debug, Clone)]
+pub struct Graph<A: Scalar> {
     graph: petgraph::graph::Graph<Node<A>, ()>,
     namespace: HashMap<String, NodeIndex>,
 }
 
-impl<A> Graph<A> {
+impl<A: Scalar> Graph<A> {
     pub fn get_index(&self, name: &str) -> NodeIndex {
         self.namespace[name]
     }
 }
 
 // Panic if the index does not exists
-impl<A> ::std::ops::Index<NodeIndex> for Graph<A> {
+impl<A: Scalar> ::std::ops::Index<NodeIndex> for Graph<A> {
     type Output = Node<A>;
     fn index(&self, index: NodeIndex) -> &Node<A> {
         &self.graph[index]
@@ -134,14 +135,14 @@ impl<A> ::std::ops::Index<NodeIndex> for Graph<A> {
 }
 
 // Panic if the index does not exists
-impl<A> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
+impl<A: Scalar> ::std::ops::IndexMut<NodeIndex> for Graph<A> {
     fn index_mut(&mut self, index: NodeIndex) -> &mut Node<A> {
         &mut self.graph[index]
     }
 }
 
 // Panic if the name is not found
-impl<A> ::std::ops::Index<&str> for Graph<A> {
+impl<A: Scalar> ::std::ops::Index<&str> for Graph<A> {
     type Output = Node<A>;
     fn index(&self, name: &str) -> &Node<A> {
         let index = self.namespace[name];
@@ -150,7 +151,7 @@ impl<A> ::std::ops::Index<&str> for Graph<A> {
 }
 
 // Panic if the name is not found
-impl<A> ::std::ops::IndexMut<&str> for Graph<A> {
+impl<A: Scalar> ::std::ops::IndexMut<&str> for Graph<A> {
     fn index_mut(&mut self, name: &str) -> &mut Node<A> {
         let index = self.namespace[name];
         &mut self.graph[index]
@@ -178,7 +179,6 @@ impl<A: Scalar> Graph<A> {
     def_binary!(add, Add);
     def_binary!(mul, Mul);
     def_binary!(div, Div);
-    def_binary!(pow, Pow);
     def_unary!(neg, Neg);
     def_unary!(square, Square);
     def_unary!(exp, Exp);
@@ -234,7 +234,7 @@ impl<A: Scalar> Graph<A> {
     /// Set a value to a variable node, and returns `NodeTypeError` if the node is an operator.
     pub fn set_value(&mut self, node: NodeIndex, value: A) -> Result<()> {
         if self.graph[node].is_variable() {
-            self.graph[node].value = Some(value.into());
+            self.graph[node].value = Some(arr0(value).into_dyn());
             Ok(())
         } else {
             Err(Error::NodeTypeError {
@@ -256,7 +256,7 @@ impl<A: Scalar> Graph<A> {
     }
 
     /// Evaluate the value of the node recusively.
-    pub fn eval_value(&mut self, node: NodeIndex) -> Result<A> {
+    pub fn eval_value(&mut self, node: NodeIndex) -> Result<ArrayD<A>> {
         let prop = self[node].property;
         match prop {
             Property::Variable => self.get_value(node),
@@ -267,7 +267,7 @@ impl<A: Scalar> Graph<A> {
                 let arg = self.get_arg1(node);
                 let val1 = self.eval_value(arg)?;
                 let value = op.eval_value(val1);
-                self[node].value = Some(value); // cache
+                self[node].value = Some(value.clone()); // cache
                 value
             })),
             Property::Binary(ref op) => Ok(self.get_value(node).unwrap_or({
@@ -275,25 +275,25 @@ impl<A: Scalar> Graph<A> {
                 let lv = self.eval_value(lhs)?;
                 let rv = self.eval_value(rhs)?;
                 let value = op.eval_value(lv, rv);
-                self[node].value = Some(value); // cache
+                self[node].value = Some(value.clone()); // cache
                 value
             })),
         }
     }
 
-    pub fn get_value(&self, node: NodeIndex) -> Result<A> {
+    pub fn get_value(&self, node: NodeIndex) -> Result<ArrayD<A>> {
         self[node].value.ok_or(Error::ValueUninitialized {
             index: node.index(),
         })
     }
 
-    pub fn get_deriv(&self, node: NodeIndex) -> Result<A> {
+    pub fn get_deriv(&self, node: NodeIndex) -> Result<ArrayD<A>> {
         self[node].deriv.ok_or(Error::DerivUninitialized {
             index: node.index(),
         })
     }
 
-    fn deriv_recur(&mut self, node: NodeIndex, der: A) -> Result<()> {
+    fn deriv_recur(&mut self, node: NodeIndex, der: ArrayD<A>) -> Result<()> {
         self[node].deriv = match self[node].deriv {
             Some(der_last) => Some(der_last + der),
             None => Some(der),
@@ -321,15 +321,8 @@ impl<A: Scalar> Graph<A> {
         for idx in self.graph.node_indices() {
             self[idx].deriv = None;
         }
-        self.deriv_recur(node, A::one())
-    }
-
-    pub fn to_json(&self, writer: impl io::Write) -> Result<()> {
-        serde_json::to_writer(writer, self).map_err(|error| Error::JSONSerializeFailed { error })
-    }
-
-    pub fn to_json_str(&self) -> Result<String> {
-        serde_json::to_string(self).map_err(|error| Error::JSONSerializeFailed { error })
+        let shape = self[node].value.as_ref().unwrap().shape();
+        self.deriv_recur(node, ArrayD::ones(shape))
     }
 
     pub fn to_dot(&self, sink: &mut impl io::Write) -> io::Result<()>
