@@ -204,6 +204,16 @@ impl<A: Scalar> Graph<A> {
         }
     }
 
+    pub fn constant_scalar(&mut self, value: A) -> NodeIndex {
+        let value = ndarray::arr0(value).into_dyn().into_shared();
+        self.graph.add_node(Node::constant(value))
+    }
+
+    pub fn constant_vector(&mut self, value: &[A]) -> NodeIndex {
+        let value = ndarray::arr1(value).into_dyn().into_shared();
+        self.graph.add_node(Node::constant(value))
+    }
+
     pub fn constant(&mut self, value: Tensor<A>) -> NodeIndex {
         self.graph.add_node(Node::constant(value))
     }
@@ -219,6 +229,22 @@ impl<A: Scalar> Graph<A> {
                 Ok(id)
             }
         }
+    }
+
+    /// Create new 0-dimensional variable
+    pub fn scalar(&mut self, name: &str, value: A) -> Result<NodeIndex> {
+        let value = ndarray::arr0(value).into_dyn().into_shared();
+        let var = self.empty_variable(name)?;
+        self.set_value(var, value).unwrap();
+        Ok(var)
+    }
+
+    /// Create new 1-dimensional variable
+    pub fn vector(&mut self, name: &str, value: &[A]) -> Result<NodeIndex> {
+        let value = ndarray::arr1(value).into_dyn().into_shared();
+        let var = self.empty_variable(name)?;
+        self.set_value(var, value).unwrap();
+        Ok(var)
     }
 
     /// Create new variable with value

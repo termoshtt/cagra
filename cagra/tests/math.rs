@@ -5,7 +5,7 @@ use cagra::{error::Result, graph::Graph};
 fn test_exp() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.exp(x);
     abs_diff_eq!(g.eval_value(y)?, x0.exp());
     g.eval_deriv(y)?;
@@ -17,7 +17,7 @@ fn test_exp() -> Result<()> {
 fn test_ln() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.ln(x);
     abs_diff_eq!(g.eval_value(y)?, x0.ln());
     g.eval_deriv(y)?;
@@ -29,7 +29,7 @@ fn test_ln() -> Result<()> {
 fn test_ln_exp() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.exp(x);
     let z = g.exp(y);
     abs_diff_eq!(g.eval_value(z)?, x0);
@@ -42,7 +42,7 @@ fn test_ln_exp() -> Result<()> {
 fn test_sin() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.sin(x);
     abs_diff_eq!(g.eval_value(y)?, x0.sin());
     g.eval_deriv(y)?;
@@ -54,7 +54,7 @@ fn test_sin() -> Result<()> {
 fn test_cos() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.cos(x);
     abs_diff_eq!(g.eval_value(y)?, x0.cos());
     g.eval_deriv(y)?;
@@ -66,7 +66,7 @@ fn test_cos() -> Result<()> {
 fn test_sin_cos() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let s = g.sin(x);
     let ss = g.square(s);
     let c = g.cos(x);
@@ -82,7 +82,7 @@ fn test_sin_cos() -> Result<()> {
 fn test_tan() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let t = g.tan(x);
     let s = g.sin(x);
     let c = g.cos(x);
@@ -98,7 +98,7 @@ fn test_tan() -> Result<()> {
 fn test_sinh() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.sinh(x);
     abs_diff_eq!(g.eval_value(y)?, x0.sinh());
     g.eval_deriv(y)?;
@@ -110,7 +110,7 @@ fn test_sinh() -> Result<()> {
 fn test_cosh() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let y = g.cosh(x);
     abs_diff_eq!(g.eval_value(y)?, x0.cosh());
     g.eval_deriv(y)?;
@@ -122,7 +122,7 @@ fn test_cosh() -> Result<()> {
 fn test_sinh_cosh() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let s = g.sinh(x);
     let ss = g.square(s);
     let c = g.cosh(x);
@@ -138,7 +138,7 @@ fn test_sinh_cosh() -> Result<()> {
 fn test_tanh() -> Result<()> {
     let mut g = Graph::new();
     let x0: f32 = 1.234;
-    let x = g.variable("x", x0)?;
+    let x = g.scalar("x", x0)?;
     let t = g.tanh(x);
     let s = g.sinh(x);
     let c = g.cosh(x);
