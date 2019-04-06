@@ -1,9 +1,7 @@
-#[macro_use]
-extern crate cagra;
+use cagra::graph;
 use std::fs;
 
-#[test]
-fn dot_output() -> Result<(), failure::Error> {
+fn main() -> Result<(), failure::Error> {
     let mut g = graph!(f64, {
         let x = 1.0;
         let y = x * 2.0;
