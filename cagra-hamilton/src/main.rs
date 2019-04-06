@@ -22,14 +22,14 @@ fn main() -> Result<(), Error> {
         let vp = g.get_value(p)?;
         let hq = g.get_deriv(q)?;
 
-        g.set_value(p, vp - dt * hq)?;
+        g.set_value(p, vp.clone() - dt * hq)?;
 
         g.eval_value(h)?;
         g.eval_deriv(h)?;
 
         let vq = g.get_value(q)?;
         let hp = g.get_deriv(p)?;
-        g.set_value(q, vq + dt * hp)?;
+        g.set_value(q, vq.clone() + dt * hp)?;
 
         println!("{:.09},{:.09},{:.09},{:.09}", dt * t as f64, e, vq, vp);
     }

@@ -4,17 +4,11 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 #[derive(Fail, Debug)]
 pub enum Error {
     /// value node is not initialized
-    #[fail(
-        display = "Value node is not initialized (Index = {})",
-        index
-    )]
+    #[fail(display = "Value node is not initialized (Index = {})", index)]
     ValueUninitialized { index: usize },
 
     /// derivative is not initialized
-    #[fail(
-        display = "Derivative is not initialized (Index = {})",
-        index
-    )]
+    #[fail(display = "Derivative is not initialized (Index = {})", index)]
     DerivUninitialized { index: usize },
 
     /// node type mismatch
@@ -32,4 +26,11 @@ pub enum Error {
     /// Fail to serialize to JSON
     #[fail(display = "JSON serialization failed: {:?})", error)]
     JSONSerializeFailed { error: serde_json::error::Error },
+
+    /// Tensor rank mismatch
+    #[fail(
+        display = "Tensor rank is mismatched: actual={}, desired={}",
+        actual, desired
+    )]
+    TensorRankMismatch { actual: usize, desired: usize },
 }
