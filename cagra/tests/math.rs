@@ -1,5 +1,5 @@
 use approx::abs_diff_eq;
-use cagra::{error::Result, graph::Graph};
+use cagra::{error::Result, graph::Graph, tensor::*};
 
 #[test]
 fn test_exp() -> Result<()> {
@@ -7,9 +7,9 @@ fn test_exp() -> Result<()> {
     let x0: f32 = 1.234;
     let x = g.scalar("x", x0)?;
     let y = g.exp(x);
-    abs_diff_eq!(g.eval_value(y)?, x0.exp());
+    abs_diff_eq!(g.eval_value(y)?.as_scalar()?, x0.exp());
     g.eval_deriv(y)?;
-    abs_diff_eq!(g.get_deriv(x)?, x0.exp());
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, x0.exp());
     Ok(())
 }
 
@@ -19,9 +19,9 @@ fn test_ln() -> Result<()> {
     let x0: f32 = 1.234;
     let x = g.scalar("x", x0)?;
     let y = g.ln(x);
-    abs_diff_eq!(g.eval_value(y)?, x0.ln());
+    abs_diff_eq!(g.eval_value(y)?.as_scalar()?, x0.ln());
     g.eval_deriv(y)?;
-    abs_diff_eq!(g.get_deriv(x)?, 1.0 / x0);
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, 1.0 / x0);
     Ok(())
 }
 
@@ -32,9 +32,9 @@ fn test_ln_exp() -> Result<()> {
     let x = g.scalar("x", x0)?;
     let y = g.exp(x);
     let z = g.exp(y);
-    abs_diff_eq!(g.eval_value(z)?, x0);
+    abs_diff_eq!(g.eval_value(z)?.as_scalar()?, x0);
     g.eval_deriv(z)?;
-    abs_diff_eq!(g.get_deriv(x)?, 0.0);
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, 0.0);
     Ok(())
 }
 
@@ -44,9 +44,9 @@ fn test_sin() -> Result<()> {
     let x0: f32 = 1.234;
     let x = g.scalar("x", x0)?;
     let y = g.sin(x);
-    abs_diff_eq!(g.eval_value(y)?, x0.sin());
+    abs_diff_eq!(g.eval_value(y)?.as_scalar()?, x0.sin());
     g.eval_deriv(y)?;
-    abs_diff_eq!(g.get_deriv(x)?, x0.cos());
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, x0.cos());
     Ok(())
 }
 
@@ -56,9 +56,9 @@ fn test_cos() -> Result<()> {
     let x0: f32 = 1.234;
     let x = g.scalar("x", x0)?;
     let y = g.cos(x);
-    abs_diff_eq!(g.eval_value(y)?, x0.cos());
+    abs_diff_eq!(g.eval_value(y)?.as_scalar()?, x0.cos());
     g.eval_deriv(y)?;
-    abs_diff_eq!(g.get_deriv(x)?, -x0.sin());
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, -x0.sin());
     Ok(())
 }
 
@@ -72,9 +72,9 @@ fn test_sin_cos() -> Result<()> {
     let c = g.cos(x);
     let cc = g.square(c);
     let z = g.add(ss, cc);
-    abs_diff_eq!(g.eval_value(z)?, 1.0);
+    abs_diff_eq!(g.eval_value(z)?.as_scalar()?, 1.0);
     g.eval_deriv(z)?;
-    abs_diff_eq!(g.get_deriv(x)?, 0.0);
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, 0.0);
     Ok(())
 }
 
@@ -88,9 +88,9 @@ fn test_tan() -> Result<()> {
     let c = g.cos(x);
     let tc = g.mul(t, c);
     let z = g.div(tc, s);
-    abs_diff_eq!(g.eval_value(z)?, 1.0);
+    abs_diff_eq!(g.eval_value(z)?.as_scalar()?, 1.0);
     g.eval_deriv(z)?;
-    abs_diff_eq!(g.get_deriv(x)?, 0.0);
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, 0.0);
     Ok(())
 }
 
@@ -100,9 +100,9 @@ fn test_sinh() -> Result<()> {
     let x0: f32 = 1.234;
     let x = g.scalar("x", x0)?;
     let y = g.sinh(x);
-    abs_diff_eq!(g.eval_value(y)?, x0.sinh());
+    abs_diff_eq!(g.eval_value(y)?.as_scalar()?, x0.sinh());
     g.eval_deriv(y)?;
-    abs_diff_eq!(g.get_deriv(x)?, x0.cosh());
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, x0.cosh());
     Ok(())
 }
 
@@ -112,9 +112,9 @@ fn test_cosh() -> Result<()> {
     let x0: f32 = 1.234;
     let x = g.scalar("x", x0)?;
     let y = g.cosh(x);
-    abs_diff_eq!(g.eval_value(y)?, x0.cosh());
+    abs_diff_eq!(g.eval_value(y)?.as_scalar()?, x0.cosh());
     g.eval_deriv(y)?;
-    abs_diff_eq!(g.get_deriv(x)?, x0.sinh());
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, x0.sinh());
     Ok(())
 }
 
@@ -128,9 +128,9 @@ fn test_sinh_cosh() -> Result<()> {
     let c = g.cosh(x);
     let cc = g.square(c);
     let z = g.sub(cc, ss);
-    abs_diff_eq!(g.eval_value(z)?, 1.0);
+    abs_diff_eq!(g.eval_value(z)?.as_scalar()?, 1.0);
     g.eval_deriv(z)?;
-    abs_diff_eq!(g.get_deriv(x)?, 0.0);
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, 0.0);
     Ok(())
 }
 
@@ -144,8 +144,8 @@ fn test_tanh() -> Result<()> {
     let c = g.cosh(x);
     let tc = g.mul(t, c);
     let z = g.div(tc, s);
-    abs_diff_eq!(g.eval_value(z)?, 1.0);
+    abs_diff_eq!(g.eval_value(z)?.as_scalar()?, 1.0);
     g.eval_deriv(z)?;
-    abs_diff_eq!(g.get_deriv(x)?, 0.0);
+    abs_diff_eq!(g.get_deriv(x)?.as_scalar()?, 0.0);
     Ok(())
 }
