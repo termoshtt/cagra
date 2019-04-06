@@ -180,6 +180,7 @@ impl<A: Scalar> Graph<A> {
     def_binary!(add, Add);
     def_binary!(mul, Mul);
     def_binary!(div, Div);
+    def_binary!(dot, Dot);
     def_unary!(neg, Neg);
     def_unary!(square, Square);
     def_unary!(exp, Exp);

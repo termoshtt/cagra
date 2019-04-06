@@ -27,7 +27,7 @@ pub enum Error {
     #[fail(display = "JSON serialization failed: {:?})", error)]
     JSONSerializeFailed { error: serde_json::error::Error },
 
-    ///
+    /// Tensor rank mismatch
     #[fail(
         display = "Tensor rank is mismatched: actual={}, desired={}",
         actual, desired

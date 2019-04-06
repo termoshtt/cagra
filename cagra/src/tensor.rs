@@ -22,6 +22,7 @@ impl<'a, A: Scalar> IntoTensor<A> for &'a [A] {
 
 pub trait TensorCast<A> {
     fn as_scalar(&self) -> Result<A>;
+    fn as_vector(&self) -> Result<&[A]>;
 }
 
 impl<A: Scalar> TensorCast<A> for Tensor<A> {
@@ -34,5 +35,15 @@ impl<A: Scalar> TensorCast<A> for Tensor<A> {
         }
         let t = self.to_owned().into_shape(()).unwrap();
         Ok(t.into_scalar())
+    }
+
+    fn as_vector(&self) -> Result<&[A]> {
+        if self.ndim() != 1 {
+            return Err(Error::TensorRankMismatch {
+                actual: self.ndim(),
+                desired: 1,
+            });
+        }
+        Ok(self.as_slice().unwrap())
     }
 }
