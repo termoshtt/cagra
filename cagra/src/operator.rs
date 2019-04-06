@@ -4,7 +4,7 @@ use cauchy::Scalar;
 use ndarray::azip;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::graph::Tensor;
+use crate::tensor::*;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Unary {
@@ -101,6 +101,7 @@ pub enum Binary {
     Add,
     Mul,
     Div,
+    Dot,
 }
 
 impl Binary {
@@ -110,6 +111,7 @@ impl Binary {
             Binary::Add => lhs + rhs,
             Binary::Mul => lhs * rhs,
             Binary::Div => lhs / rhs,
+            Binary::Dot => (lhs * rhs).sum().into_tensor(),
         }
     }
     /// Evaluate the derivative of the operator multiplied by the received
@@ -127,6 +129,10 @@ impl Binary {
                 deriv.clone() / rhs.clone(),
                 -lhs * deriv.clone() / (rhs.clone() * rhs.clone()),
             ),
+            Binary::Dot => {
+                let d = deriv.as_scalar().unwrap();
+                (rhs.mapv_into(|a| a * d), lhs.mapv_into(|a| a * d))
+            }
         }
     }
 }
