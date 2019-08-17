@@ -350,7 +350,8 @@ impl<A: Scalar> Graph<A> {
             self[idx].deriv = None;
         }
         let shape = self[node].value.as_ref().unwrap().shape();
-        self.deriv_recur(node, Tensor::ones(shape))
+        let one = Tensor::ones(shape);
+        self.deriv_recur(node, one)
     }
 
     pub fn to_dot(&self, sink: &mut impl io::Write) -> io::Result<()>
