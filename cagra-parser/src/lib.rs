@@ -30,10 +30,7 @@ pub fn graph_impl(item: TokenStream) -> TokenStream {
         .map(|line| match line {
             syn::Stmt::Local(local) => {
                 // lhs of `=`
-                if local.pats.len() != 1 {
-                    unreachable!("Unknown case ??");
-                }
-                let id = match &local.pats[0] {
+                let id = match &local.pat {
                     syn::Pat::Ident(id) => &id.ident,
                     _ => unreachable!("Unsupported lhs pattern"),
                 };
