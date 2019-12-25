@@ -20,7 +20,7 @@ serde_json = "1.0"
 cauchy = "0.2"
 
 [dependencies.petgraph]
-version = "0.4"
+version = "0.5"
 features = ["serde-1"]
 
 [dependencies.ndarray]
