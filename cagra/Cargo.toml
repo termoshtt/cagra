@@ -32,7 +32,7 @@ version = "0.1"
 path = "../cagra-parser"
 
 [dev-dependencies]
-approx = "0.4"
+approx = "0.5"
 criterion = "0.3"
 
 [[bench]]
